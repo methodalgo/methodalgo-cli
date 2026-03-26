@@ -8,7 +8,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "node scripts/build-binary.js"
+    "build": "node scripts/build-binary.js",
+    "release": "./scripts/release.sh"
   },
   "keywords": [],
   "author": "",
@@ -16,6 +17,18 @@
   "description": "",
   "bin": {
     "methodalgo": "./bin/index.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "preferGlobal": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/methodalgo/methodalgo-cli.git"
   },
   "dependencies": {
     "axios": "^1.13.6",

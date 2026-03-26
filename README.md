@@ -1,162 +1,133 @@
-# 🎯 Methodalgo Market Intelligence CLI
+# 🚀 Methodalgo CLI
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
 
-> **Methodalgo 市场情报工具** - 专为开发者和大模型 (LLM) 优化的加密货币市场分析命令行工具。
+> **极速、专业、跨平台的加密货币市场情报终端。** 
+> 专为交易者与 AI 代理设计的 Alpha 信号抓取器。
 
-[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![I18n: Supported](https://img.shields.io/badge/i18n-zh%20%7C%20en-blue)](https://github.com/methodalgo/methodalgo-cli)
-
+## 项目概览
+`methodalgo-cli` 是一个基于 Node.js 开发的轻量级市场情报命令行工具。它不仅能让终端用户快速获取加密货币市场的快照、新闻和信号，还针对 AI 代理（LLM）的工作流进行了深度优化，提供了可解析的错误方案建议。
 ---
 
-## ✨ 核心特性
+## 🛠️ 安装指南
 
-- 🚀 **瞬时快照**：一键获取 TradingView 实时图表快照 (iTerm2 支持直渲)。
-- 📰 **深度新闻**：聚合全球加密市场新闻，并提供 AI 摘要（需服务端支持）。
-- 📊 **L2 信号**：实时监控特定频道的交易信号（如 Golden Pit 等）。
-- 🖥️ **TUI 仪表盘**：全屏实时监控 (TUI)，包含全球时钟及多维数据流。
-- 🌍 **国际化支持**：完整的中英文双语切换，默认为英文环境。
-- 🤖 **LLM 友好**：针对大模型工作流优化的输出格式，包含清晰的错误修复建议 (Suggestions)。
-- 🔒 **安全加固**：交互式 Onboarding 引导流程，且所有 API Key 设置均经过实时联网强校验。
+### 🌟 推荐方式：NPM 全局安装
+这是最快速、最易于升级的方式。确保您的系统已安装 [Node.js](https://nodejs.org/) (v20+):
+```bash
+npm install -g methodalgo-cli
+```
 
----
+### 📦 其他安装方式
 
-### 📦 独立二进制版 (推荐)
-如果您不想安装 Node.js，可以直接从 [Releases](https://github.com/methodalgo/methodalgo-cli/releases) 下载对应平台的二进制文件放入 `PATH`：
+#### 1. 独立二进制版 (无需 Node.js)
+直接从 [Releases](https://github.com/methodalgo/methodalgo-cli/releases) 下载对应平台的二进制文件并加入系统 `PATH`:
 - `methodalgo-macos-arm64` (Apple Silicon)
 - `methodalgo-macos-x64` (Intel Mac)
 - `methodalgo-win-x64.exe` (Windows)
 - `methodalgo-linux-x64` (Linux)
 
-### 🛠️ npm 开发安装
-如果您拥有 Node.js (v20+) 环境：
+#### 2. 开发源码安装
 ```bash
-# 本地开发安装
+git clone https://github.com/methodalgo/methodalgo-cli.git
+cd methodalgo-cli
 npm install
-npm run build   # 在 binaries/ 目录下产出全平台二进制
-npm link        # 挂载本地命令
+npm link        # 链接本地指令
 ```
 
 ---
 
-## ⚙️ 配置说明
+## ⚙️ 指令指南
 
-第一次运行 `methodalgo` 时，系统会自动进入 **交互式引导 (Onboarding)** 流程，帮助您选择语言并验证 API Key。您也可以手动进行调整：
+### 📸 市场快照 (`snapshot`)
+获取指定交易对的实时 TradingView 图表快照。
 
-```bash
-# 设置并校验 API Key (联网验证通过后才保存)
-methodalgo config set api-key your_ma_key_here
+*   **用法**: `methodalgo snapshot <symbol> [options]`
+*   **选项**:
+    *   `-t, --tf <timeframe>`: 时间周期 (如: 1, 15, 60, 4h, D) (默认: "60")
+    *   `--json`: 以 JSON 格式输出 WebP 图片 URL。
+    *   `--url`: 强制仅输出 URL（不尝试在终端渲染图片）。
 
-# 切换语言为中文 (默认为 en)
-methodalgo config set lang zh
-
-# 查看当前配置 (敏感信息已掩码)
-methodalgo config list
+#### 💡 响应预览
+**标准模式 (iTerm2)**: 直接在终端显示高清 WebP 图表。
+**JSON 模式**: 
+```json
+{
+  "url": "https://m.methodalgo.com/tmp/1774563764359.webp"
+}
 ```
 
 ---
 
-## 🖼️ 图片渲染说明 (MacOS 专用)
+### 📡 交易信号 (`signals`)
+从指定频道获取最新的 Alpha 信号或市场指标。
 
-本项目支持在 **iTerm2** 终端中直接显示图表快照，无需打开浏览器。
+*   **用法**: `methodalgo signals [channel] [options]`
+*   **热门频道**:
+    *   `etf-tracker`: 监控 BTC/ETH ETF 每日实时资金流入/流出详情。
+    *   `market-today`: 每日市场全景总结（包含恐惧贪婪指数、山寨季指数等）。
+    *   `golden-pit-mtf`: 低频高质量模式识别信号。
+*   **选项**:
+    *   `-l, --limit <number>`: 获取信号的数量 (默认: "10")
+    *   `--json`: 以 JSON 格式输出原始信号数组。
 
-- **自动直渲**：在 iTerm2 中运行 `methodalgo snapshot` 会自动请求二进制数据流并渲染图片。
-- **云端回退**：在非 iTerm2 环境下，会自动返回 Web 预览链接。
-- **强制模式**：
-  - 使用 `-u, --url` 强制返回链接 (LLM 调用推荐)。
-  - 使用 `-b, --buffer` 强制尝试终端渲染。
-
----
-
-## 🚀 指令手册
-
-### 📸 获取图表快照 (Snapshot)
-获取指定交易对和周期的 TradingView 预览图。
-
-```bash
-# 获取 SOLUSDT 的 1 小时快照 (iTerm2 会直接显示图片)
-methodalgo snapshot SOLUSDT 60
-
-# 强制获取 URL 链接 (即使在 iTerm2 中)
-methodalgo snapshot BTCUSDT --url
-
-# 强制获取二进制流并尝试渲染
-methodalgo snapshot ETHUSDT --buffer
-
-# 输出原始 JSON 数据
-methodalgo snapshot BTCUSDT --json
-```
-
-### 📰 获取市场新闻 (News)
-获取实时加密市场情报，支持关键词搜索和日期范围筛选。
-
-```bash
-# 获取最新的 5 条实时快讯
-methodalgo news --type breaking --limit 5
-
-# 搜索包含 "Bitcoin" 的新闻
-methodalgo news --search "Bitcoin"
-
-# 筛选指定日期范围的新闻
-methodalgo news --start-date "2026-03-20" --end-date "2026-03-25"
-
-# 查看原始 JSON 数据以供进一步分析
-methodalgo news --json
-```
-
-### 📡 获取交易信号 (Signals)
-从指定频道获取最新的 Alpha 交易信号信息。
-
-```bash
-# 获取 ETF 追踪信号 (包含 Inflow 详情)
-methodalgo signals etf-tracker
-
-# 获取今日市场总结 (包含贪婪/恐慌指数及历史趋势)
-methodalgo signals market-today
-
-# 限制获取 2 条信号
-methodalgo signals --limit 2
-```
-
-### 🖥️ 实时仪表盘 (Dashboard)
-启动全屏 TUI 模式，实时监控全球资讯与 Alpha 信号。
-
-```bash
-# 启动仪表盘
-methodalgo dashboard
-```
-
-### 🔓 注销登录 (Logout)
-安全移除本地 API Key 信息（保留语言偏好）。
-
-```bash
-methodalgo logout
-```
-
----
-
-## 📂 项目结构
-
+#### 💡 响应预览
+**列表模式**:
 ```text
-methodalgo-cli/
-├── src/
-│   ├── index.js          # CLI 入口逻辑 (含 Onboarding 控制)
-│   ├── commands/         # 各子指令实现 (config, news, snapshot, signals, dashboard, logout)
-│   └── utils/
-│       ├── api.js        # 签名请求封装 (含 Key 强校验)
-│       ├── i18n.js       # 国际化翻译字典
-│       ├── onboard.js    # 交互式引导流程
-│       ├── config-manager.js # 本地配置持久化
-│       └── logger.js     # 特色日志工具
-├── scripts/
-│   ├── build-binary.js   # 全平台一键构建系统
-│   └── sea-launch.cjs    # SEA 运行引导垫片
-├── binaries/             # 二进制分发包产出目录
-├── package.json
-└── README.md
+[序号] 标题 | 核心内容摘要 (发布时间)
+    > 详细数据详情 (如 ETF 净流入额)
+    查看原文: [URL]
+```
+**JSON 模式 (market-today 示例)**:
+```json
+[
+  {
+    "id": "1486521752564797454",
+    "signals": [
+      {
+        "title": "Season Index",
+        "details": { "Alt Season": "75%", "Bitcoin Season": "Bitcoin outperformed..." },
+        "image": "https://cdn.discordapp.com/..."
+      }
+    ]
+  }
+]
 ```
 
 ---
 
-## 📜 许可证
+### 📰 市场新闻 (`news`)
+获取经过 AI 分选的多语言加密货币市场新闻。
 
-本项目基于 [MIT License](LICENSE) 开源。
+*   **用法**: `methodalgo news [options]`
+*   **新闻类型**: `breaking` (快讯), `article` (深度), `onchain` (链上), `report` (报告)
+*   **选项**:
+    *   `-t, --type <type>`: 新闻分类 (默认: "breaking")
+    *   `-l, --limit <number>`: 结果数量 (默认: "10")
+    *   `-g, --language <lang>`: 输出语言 (zh/en) (默认: "zh")
+    *   `-s, --search <keyword>`: 标题关键词搜索。
+
+#### 💡 响应预览
+**JSON 模式**:
+```json
+[
+  {
+    "type": "news",
+    "title": { "zh": "突发：戴维·萨克斯出任...", "en": "JUST IN: David Sacks..." },
+    "publish_date": "2026-03-26T22:03:49+00:00",
+    "url": "https://..."
+  }
+]
+```
+
+---
+
+## 🖥️ 功能亮点
+
+- ⚡ **极致速度**: 基于 Node SEA 打造，启动毫秒级。
+- 🖼️ **终端绘图**: 深度适配 iTerm2，无需离开终端即可看盘。
+- 🌍 **多语言**: 原生支持中英双语切换。
+- 🤖 **LLM 友好**: 提供结构清晰的 JSON 输出，完美适配 AI Agent 集成。
+
+---
+
+*Powered by Methodalgo.*
