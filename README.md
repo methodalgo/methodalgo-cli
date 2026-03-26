@@ -84,11 +84,17 @@ methodalgo snapshot BTCUSDT --json
 ```
 
 ### 📰 获取市场新闻 (News)
-获取实时加密市场情报并阅读其核心摘要。
+获取实时加密市场情报，支持关键词搜索和日期范围筛选。
 
 ```bash
-# 获取最新的 5 条文章类新闻
-methodalgo news --type article --limit 5
+# 获取最新的 5 条实时快讯
+methodalgo news --type breaking --limit 5
+
+# 搜索包含 "Bitcoin" 的新闻
+methodalgo news --search "Bitcoin"
+
+# 筛选指定日期范围的新闻
+methodalgo news --start-date "2026-03-20" --end-date "2026-03-25"
 
 # 查看原始 JSON 数据以供进一步分析
 methodalgo news --json

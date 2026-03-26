@@ -6,17 +6,28 @@ import { t } from "../utils/i18n.js";
 
 const newsCmd = new Command("news")
     .description(t("NEWS_DESC"))
-    .option("-t, --type <type>", "News type (default: article). Use 'methodalgo news --help' to see all types.", "article")
-    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("NEWS_EXAMPLE")}\n\n${t("NEWS_TYPES")}`)
+    .option("-t, --type <type>", "News type. Use 'methodalgo news --help' to see all types.")
     .option("-l, --limit <number>", "Limit results", "10")
     .option("-g, --language <lang>", "Language (zh, en)", "zh")
+    .option("-s, --search <keyword>", t("OPT_SEARCH_DESC"))
+    .option("-S, --start-date <date>", t("OPT_START_DATE_DESC"))
+    .option("-E, --end-date <date>", t("OPT_END_DATE_DESC"))
     .option("--json", "Output raw JSON data")
+    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("NEWS_EXAMPLE")}\n\n${t("NEWS_TYPES")}`)
     .action(async (options) => {
+        if (!options.type) {
+            newsCmd.help();
+            return;
+        }
+
         try {
             const params = {
                 type: options.type,
                 limit: options.limit,
-                lang: options.language
+                lang: options.language,
+                search: options.search,
+                startDate: options.startDate,
+                endDate: options.endDate
             };
 
             const res = await signedRequest("/mcp/news", params);

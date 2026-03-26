@@ -41,7 +41,7 @@ const translations = {
 - market-today: Alt Season Index and Fear & Greed Index.`,
         NEWS_TYPES: `Supported Types:
 - article: Market news & analysis.
-- news: Real-time breaking news.
+- breaking: Real-time breaking news.
 - onchain: On-chain abnormality detection.
 - report: Institutional research reports.`,
         ERR_AUTH_FAILED: "API Key Invalid or Expired.",
@@ -62,11 +62,15 @@ const translations = {
         ARG_TF_DESC: "Timeframe (default 60)",
         OPT_URL_DESC: "Force return the URL instead of binary (recommended for LLMs)",
         OPT_BUFFER_DESC: "Force return binary buffer and try to render in terminal",
+        OPT_SEARCH_DESC: "Search keywords in news titles",
+        OPT_START_DATE_DESC: "Filter news from this date (e.g., 2026-03-20)",
+        OPT_END_DATE_DESC: "Filter news up to this date",
         SNAPSHOT_EXAMPLE: "methodalgo snapshot BTCUSDT 30",
-        NEWS_EXAMPLE: "methodalgo news --type news --limit 5",
+        NEWS_EXAMPLE: "methodalgo news --type breaking --limit 5 --search 'Bitcoin'",
         SIGNALS_EXAMPLE: "methodalgo signals breakout-mtf",
         CONFIG_EXAMPLE: "methodalgo config set lang zh",
-        DASHBOARD_EXAMPLE: "methodalgo dashboard"
+        DASHBOARD_EXAMPLE: "methodalgo dashboard",
+        TUI_HINTS: "Q:Quit | Tab:Switch | Enter:Detail"
     },
     zh: {
         HELP_DESC: "Methodalgo 市场情报工具 (针对大模型优化版)",
@@ -108,7 +112,7 @@ const translations = {
 - market-today: 每日山寨季指数与贪婪恐惧指数。输出。`,
         NEWS_TYPES: `支持的类型：
 - article: 深度市场新闻与分析。
-- news: 实时快讯。
+- breaking: 实时快讯。
 - onchain: 链上数据异动监测。
 - report: 机构研究报告。`,
         ERR_AUTH_FAILED: "API Key 无效或已过期。",
@@ -129,11 +133,15 @@ const translations = {
         ARG_TF_DESC: "时间周期 (默认 60)",
         OPT_URL_DESC: "强制返回 URL 链接而非二进制流 (大模型调用时建议开启)",
         OPT_BUFFER_DESC: "强制返回二进制流并尝试在终端渲染",
+        OPT_SEARCH_DESC: "在新闻标题中搜索关键词",
+        OPT_START_DATE_DESC: "从此日期开始筛选 (如: 2026-03-20)",
+        OPT_END_DATE_DESC: "在此日期前筛选",
         SNAPSHOT_EXAMPLE: "methodalgo snapshot BTCUSDT 30",
-        NEWS_EXAMPLE: "methodalgo news --type news --limit 5",
+        NEWS_EXAMPLE: "methodalgo news --type breaking --limit 5 --search '比特币'",
         SIGNALS_EXAMPLE: "methodalgo signals breakout-mtf",
         CONFIG_EXAMPLE: "methodalgo config set lang zh",
-        DASHBOARD_EXAMPLE: "methodalgo dashboard"
+        DASHBOARD_EXAMPLE: "methodalgo dashboard",
+        TUI_HINTS: "Q:退出 | Tab:切换 | Enter:详情"
     }
 };
 

@@ -56,11 +56,11 @@ const dashboardCmd = new Command("dashboard")
             const bar = "█".repeat(filled) + " ".repeat(20 - filled);
             progressBar.setContent(`[${bar}] ${progress}%`);
             loadText.setContent(`Fetching Global Alpha Insights${".".repeat((progress % 3) + 1)}`);
-            screen.render();
+            debouncedRender();
         }, 150);
 
         // --- 主 UI 容器 ---
-        const caches = { article: [], news: [], onchain: [], report: [], signals: [] };
+        const caches = { article: [], breaking: [], onchain: [], report: [], signals: [] };
         const getBaseStyle = (label) => ({
             label: label, border: "line",
             style: {
@@ -76,7 +76,7 @@ const dashboardCmd = new Command("dashboard")
         const newsCol = blessed.box({ parent: mainArea, top: 0, left: 0, width: "33.5%", height: "100%" });
         const newsWidgets = {
             article: blessed.list({ parent: newsCol, top: 0, left: 0, width: "100%", height: "25%", keys: true, mouse: true, vi: true, ...getBaseStyle(t("TYPE_ARTICLE")) }),
-            news: blessed.list({ parent: newsCol, top: "25%", left: 0, width: "100%", height: "25%", keys: true, mouse: true, vi: true, ...getBaseStyle(t("TYPE_NEWS")) }),
+            breaking: blessed.list({ parent: newsCol, top: "25%", left: 0, width: "100%", height: "25%", keys: true, mouse: true, vi: true, ...getBaseStyle(t("TYPE_NEWS")) }),
             onchain: blessed.list({ parent: newsCol, top: "50%", left: 0, width: "100%", height: "25%", keys: true, mouse: true, vi: true, ...getBaseStyle(t("TYPE_ONCHAIN")) }),
             report: blessed.list({ parent: newsCol, top: "75%", left: 0, width: "100%", height: "25%+1", keys: true, mouse: true, vi: true, ...getBaseStyle(t("TYPE_REPORT")) })
         };
@@ -96,20 +96,6 @@ const dashboardCmd = new Command("dashboard")
 
         const focusables = [...Object.values(newsWidgets), signalsList, clockContainer];
 
-        const copyToClipboard = (text) => {
-            if (!text) return;
-            const proc = exec(`echo "${text.replace(/"/g, '\\"')}" | pbcopy`);
-            proc.on("exit", () => {
-                const oldContent = statusBox.content;
-                statusBox.setContent(`{white-bg}{red-fg}{bold} ✓ COPIED TO CLIPBOARD SUCCESS [[ 喵! ]] {/bold}{/red-fg}{/white-bg}`);
-                screen.render();
-                setTimeout(() => {
-                    statusBox.setContent(oldContent);
-                    screen.render();
-                }, 2000);
-            });
-        };
-
         const updateScrollbar = (list, items) => {
             if (!list.scrollbar) return;
             const height = list.height - 2;
@@ -117,11 +103,21 @@ const dashboardCmd = new Command("dashboard")
             else list.scrollbar.hide();
         };
 
+        let renderPending = false;
+        const debouncedRender = () => {
+            if (renderPending) return;
+            renderPending = true;
+            setTimeout(() => {
+                screen.render();
+                renderPending = false;
+            }, 10);
+        };
+
         const updateFocusStyles = () => {
             [...focusables, statusBox].forEach(w => {
                 if (w.style && w.style.border) w.style.border.fg = (screen.focused === w) ? "red" : "white";
             });
-            screen.render();
+            debouncedRender();
         };
 
         focusables.forEach(w => {
@@ -134,8 +130,7 @@ const dashboardCmd = new Command("dashboard")
             const now = new Date();
             clocks.local.setContent(`{yellow-fg}LOCAL TIME{/yellow-fg}\n{white-fg}{bold}${now.toLocaleTimeString('zh-CN', options)}{/bold}{/white-fg}`);
             clocks.london.setContent(`{yellow-fg}LONDON (GMT){/yellow-fg}\n{white-fg}{bold}${now.toLocaleTimeString('en-GB', { ...options, timeZone: 'Europe/London' })}{/bold}{/white-fg}`);
-            clocks.ny.setContent(`{yellow-fg}NEW YORK (EST){/yellow-fg}\n{white-fg}{bold}${now.toLocaleTimeString('en-US', { ...options, timeZone: 'America/New_York' })}{/bold}{/white-fg}`);
-            screen.render();
+            debouncedRender();
         };
 
         const cleanText = (text) => {
@@ -181,7 +176,6 @@ const dashboardCmd = new Command("dashboard")
                 height: "100%-3",
                 content: data.fullText,
                 tags: true,
-                mouse: true,
                 keys: true,
                 vi: true,
                 wrap: true, // 开启换行防止溢出
@@ -199,8 +193,7 @@ const dashboardCmd = new Command("dashboard")
                 style: {
                     bg: "red",
                     fg: "white",
-                    bold: true,
-                    hover: { bg: "white", fg: "red" }
+                    bold: true
                 },
                 tags: true
             });
@@ -209,22 +202,30 @@ const dashboardCmd = new Command("dashboard")
                 if (!activeDialog) return;
                 activeDialog.destroy();
                 activeDialog = null;
-                screen.render();
+                debouncedRender();
             };
 
             dialog.key(["escape", "enter"], close);
-            closeBtn.on("click", close);
             
             dialog.focus();
-            screen.render();
+            debouncedRender();
         };
 
+        const getLabels = () => ({
+            article: t("TYPE_ARTICLE"),
+            breaking: t("TYPE_NEWS"),
+            onchain: t("TYPE_ONCHAIN"),
+            report: t("TYPE_REPORT")
+        });
+
         const refreshData = async () => {
+            const memUsage = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
             const lang = getLang();
             const statusStr = `{white-fg}{bold}MethodAlgo TUI{/bold}{/white-fg} | ` +
                 `{white-fg}Status:{/white-fg} {green-fg}Running{/green-fg} | ` +
                 `{white-fg}Update:{/white-fg} ${new Date().toLocaleTimeString()} | ` +
-                `{yellow-fg}Tips: Tab=Switch, Enter=Detail, {bold}Shift+Click to Copy{/bold}{/yellow-fg}`;
+                `{white-fg}${lang === "zh" ? "内存" : "Memory"}:{/white-fg} {cyan-fg}${memUsage} MB{/cyan-fg} | ` +
+                `{yellow-fg}${t("TUI_HINTS")}{/yellow-fg}`;
             statusBox.setContent(statusStr);
 
             try {
@@ -253,7 +254,7 @@ const dashboardCmd = new Command("dashboard")
                                  `{cyan-fg}[Press Q to Quit]{/cyan-fg}`,
                         tags: true
                     });
-                    screen.render();
+                    debouncedRender();
                     return;
                 }
 
@@ -302,7 +303,7 @@ const dashboardCmd = new Command("dashboard")
                 loadingBox.hide(); mainArea.show(); statusBox.show();
                 newsWidgets.article.focus();
             }
-            screen.render();
+            debouncedRender();
         };
 
         // 事件绑定
@@ -310,36 +311,45 @@ const dashboardCmd = new Command("dashboard")
             newsWidgets[type].on("select", (item) => {
                 const index = newsWidgets[type].getItemIndex(item);
                 const data = caches[type][index];
-                const labels = {
-                    article: t("TYPE_ARTICLE"),
-                    news: t("TYPE_NEWS"),
-                    onchain: t("TYPE_ONCHAIN"),
-                    report: t("TYPE_REPORT")
-                };
+                const labels = getLabels();
                 if (data) showDetail(data, labels[type]);
             });
-            newsWidgets[type].on("click", () => {
-                const index = newsWidgets[type].selected;
-                const data = caches[type][index];
-                if (data) copyToClipboard(data.url || data.fullText);
+
+            let lastClick = 0;
+            newsWidgets[type].on("click", (data) => {
+                const now = Date.now();
+                if (now - lastClick < 300) {
+                    const index = newsWidgets[type].selected;
+                    const itemData = caches[type][index];
+                    const labels = getLabels();
+                    if (itemData) showDetail(itemData, labels[type]);
+                }
+                lastClick = now;
             });
         });
+        
+        let lastSigClick = 0;
+        signalsList.on("click", (data) => {
+            const now = Date.now();
+            if (now - lastSigClick < 300) {
+                const index = signalsList.selected;
+                const itemData = caches.signals[index];
+                if (itemData) showDetail(itemData, t("COL_SIGNALS"));
+            }
+            lastSigClick = now;
+        });
+
         signalsList.on("select", (item) => {
             const index = signalsList.getItemIndex(item);
             const data = caches.signals[index];
             if (data) showDetail(data, t("COL_SIGNALS"));
-        });
-        signalsList.on("click", () => {
-            const index = signalsList.selected;
-            const data = caches.signals[index];
-            if (data) copyToClipboard(data.url || data.displayTitle);
         });
 
         screen.key(["escape", "q", "C-c"], () => {
             if (activeDialog) {
                 activeDialog.destroy();
                 activeDialog = null;
-                screen.render();
+                debouncedRender();
                 return;
             }
             process.exit(0);
@@ -355,7 +365,7 @@ const dashboardCmd = new Command("dashboard")
         const dataTimer = setInterval(refreshData, 60000);
         const clockTimer = setInterval(updateClocks, 1000);
         screen.on("destroy", () => { clearInterval(dataTimer); clearInterval(clockTimer); });
-        screen.render();
+        debouncedRender();
     });
 
 export default dashboardCmd;
