@@ -6,9 +6,9 @@ import { t, getLang } from "../utils/i18n.js";
 
 const signalsCmd = new Command("signals")
     .description(t("SIGNALS_DESC"))
-    .argument("[channel]", "Channel name (default: golden-pit-mtf). Use 'methodalgo signals --help' to see all channels.", "golden-pit-mtf")
-    .addHelpText("after", `\n${t("SIGNALS_CHANNELS")}`)
-    .option("-l, --limit <number>", "Limit results", "10")
+    .argument("[channel]", t("ARG_CHANNEL_DESC") || "Channel name")
+    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("SIGNALS_EXAMPLE")}\n\n${t("SIGNALS_CHANNELS")}`)
+    .option("-l, --limit <number>", t("OPT_LIMIT_DESC") || "Limit results", "10")
     .option("--json", "Output raw JSON data")
     .action(async (channel, options) => {
         try {

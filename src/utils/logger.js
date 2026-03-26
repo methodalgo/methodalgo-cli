@@ -14,7 +14,14 @@ const logger = {
             console.error(chalk.cyan(`\n💡 ${t("LABEL_SUGGESTION")}`) + suggestion);
         }
     },
-    json: (data) => console.log(JSON.stringify(data, null, 2))
+    json: (data) => console.log(JSON.stringify(data, null, 2)),
+    isIterm2: process.env.TERM_PROGRAM === "iTerm.app" || !!process.env.ITERM_SESSION_ID,
+    image: (buffer, force = false) => {
+        if ((!logger.isIterm2 && !force) || !buffer) return;
+        // iTerm2 Inline Image Protocol: \x1b]1337;File=inline=1;size=...:[base64]\x07
+        const base64 = buffer.toString("base64");
+        process.stdout.write(`\x1b]1337;File=inline=1;size=${buffer.length}:${base64}\x07\n`);
+    }
 };
 
 export default logger;

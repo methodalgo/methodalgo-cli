@@ -7,7 +7,7 @@ import { t } from "../utils/i18n.js";
 const newsCmd = new Command("news")
     .description(t("NEWS_DESC"))
     .option("-t, --type <type>", "News type (default: article). Use 'methodalgo news --help' to see all types.", "article")
-    .addHelpText("after", `\n${t("NEWS_TYPES")}`)
+    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("NEWS_EXAMPLE")}\n\n${t("NEWS_TYPES")}`)
     .option("-l, --limit <number>", "Limit results", "10")
     .option("-g, --language <lang>", "Language (zh, en)", "zh")
     .option("--json", "Output raw JSON data")
