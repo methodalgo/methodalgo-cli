@@ -1,7 +1,17 @@
+
+
 # 🚀 Methodalgo CLI
 
 [English](#english) | [中文](#中文)
-
+```text
+▄▄▄      ▄▄▄             ▄▄             ▄▄   ▄▄▄▄   ▄▄             
+████▄  ▄████        ██   ██             ██ ▄██▀▀██▄ ██             
+███▀████▀███ ▄█▀█▄ ▀██▀▀ ████▄ ▄███▄ ▄████ ███  ███ ██ ▄████ ▄███▄ 
+███  ▀▀  ███ ██▄█▀  ██   ██ ██ ██ ██ ██ ██ ███▀▀███ ██ ██ ██ ██ ██ 
+███      ███ ▀█▄▄▄  ██   ██ ██ ▀███▀ ▀████ ███  ███ ██ ▀████ ▀███▀ 
+                                                          ██       
+                                                        ▀▀▀        
+```
 ---
 
 <a name="english"></a>
@@ -10,13 +20,19 @@
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 ![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
 
-> **Ultra-fast, professional, cross-platform crypto market intelligence terminal.**
-> An Alpha signal fetcher specially designed for traders and AI agents.
+### Overview
+`methodalgo-cli` is an ultra-fast, professional L2 signals & tools terminal based on Node.js. Specially designed for traders and AI agents, it allows users to quickly obtain cryptocurrency market snapshots, news, and signals with deep optimization for LLM workflows.
 
-### Project Overview
-`methodalgo-cli` is a lightweight market intelligence command-line tool based on Node.js. It allows end-users to quickly obtain snapshots, news, and signals from the cryptocurrency market, and is deeply optimized for AI agent (LLM) workflows.
+### 🚀 Highlights
 
-### 🛠️ Installation Guide
+- ⚡ **Lightning Fast**: Built on Node SEA, millisecond startup time.
+- 🖼️ **Terminal Rendering**: Deeply compatible with iTerm2 for previewing snapshots in-terminal.
+- 🌍 **Multi-language**: Native support for Chinese and English.
+- 🤖 **AI Friendly**: Clean JSON output, perfect for AI Agent integration.
+
+---
+
+### 🛠️ Installation 
 
 #### 🌟 Recommended: NPM Global Install
 This is the fastest and easiest way to upgrade. Ensure [Node.js](https://nodejs.org/) (v20+) is installed on your system:
@@ -51,6 +67,8 @@ Launch a real-time TUI (Terminal User Interface) dashboard for a global view of 
 *   **Controls**: Use `TAB` to switch panels, `UP/DOWN` to scroll, and `ENTER` to view details.
 
 **Example**: `methodalgo dashboard`
+
+--- 
 
 ### ⚙️ Commands
 
@@ -124,28 +142,23 @@ Get multi-language crypto market news filtered by AI.
 
 ---
 
-### 🚀 Highlights
-
-- ⚡ **Lightning Fast**: Built on Node SEA, millisecond startup time.
-- 🖼️ **Terminal Rendering**: Deeply compatible with iTerm2 for previewing snapshots in-terminal.
-- 🌍 **Multi-language**: Native support for Chinese and English.
-- 🤖 **AI Friendly**: Clean JSON output, perfect for AI Agent integration.
-
-<br/>
-
----
-
 <a name="中文"></a>
 ## 中文
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 ![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
 
-> **极速、专业、跨平台的加密货币市场情报终端。** 
-> 专为交易者与 AI 代理设计的 Alpha 信号抓取器。
-
 ### 项目概览
-`methodalgo-cli` 是一个基于 Node.js 开发的轻量级市场情报命令行工具。它不仅能让终端用户快速获取加密货币市场的快照、新闻和信号，还针对 AI 代理（LLM）的工作流进行了深度优化。
+`methodalgo-cli` 是一个基于 Node.js 开发的极速、专业的加密货币市场 L2 信号与工具终端。它专为交易者与 AI 代理设计，集成了市场快照、新闻与信号抓取，并针对 LLM 工作流进行了深度优化。
+
+### 🖥️ 功能亮点
+
+- ⚡ **极致速度**: 基于 Node SEA 打造，启动毫秒级。
+- 🖼️ **终端绘图**: 深度适配 iTerm2，无需离开终端即可预览截图。
+- 🌍 **多语言**: 原生支持中英双语切换。
+- 🤖 **LLM 友好**: 提供结构清晰的 JSON 输出，完美适配 AI Agent 集成。
+
+---
 
 ### 🛠️ 安装指南
 
@@ -173,6 +186,16 @@ cd methodalgo-cli
 npm install
 npm link        # 链接本地指令
 ```
+
+---
+
+#### 🖥️ 市场看板 (`dashboard`)
+启动实时 TUI（终端用户界面）仪表盘，全局俯瞰市场洞察、新闻与信号。
+
+*   **用法**: `methodalgo dashboard` (别名: `top`)
+*   **操作**: 使用 `TAB` 切换面板，`UP/DOWN` 滚动列表，`ENTER` 弹出详情。
+
+**示例**: `methodalgo dashboard`
 
 ---
 
@@ -244,26 +267,6 @@ npm link        # 链接本地指令
   }
 ]
 ```
-
-#### 🖥️ 市场看板 (`dashboard`)
-启动实时 TUI（终端用户界面）仪表盘，全局俯瞰市场洞察、新闻与信号。
-
-*   **用法**: `methodalgo dashboard` (别名: `top`)
-*   **操作**: 使用 `TAB` 切换面板，`UP/DOWN` 滚动列表，`ENTER` 弹出详情。
-
-**示例**: `methodalgo dashboard`
-
----
-
-### 🖥️ 功能亮点
-
-- ⚡ **极致速度**: 基于 Node SEA 打造，启动毫秒级。
-- 🖼️ **终端绘图**: 深度适配 iTerm2，无需离开终端即可预览截图。
-- 🌍 **多语言**: 原生支持中英双语切换。
-- 🤖 **LLM 友好**: 提供结构清晰的 JSON 输出，完美适配 AI Agent 集成。
-
-<br/>
-
 ---
 
 *Powered by Methodalgo.*
