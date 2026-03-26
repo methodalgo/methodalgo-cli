@@ -11,3 +11,8 @@ yarn-error.log*
 .agent/
 brain/
 GEMINI.md
+
+# Build outputs and Caches
+binaries/
+dist/
+cache/

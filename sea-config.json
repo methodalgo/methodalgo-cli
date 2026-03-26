@@ -1,0 +1,8 @@
+{
+  "main": "scripts/sea-launch.cjs",
+  "output": "dist/sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "assets": {
+    "index.mjs": "dist/index.mjs"
+  }
+}

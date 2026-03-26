@@ -20,17 +20,20 @@
 
 ---
 
-## 🛠️ 安装指南
+### 📦 独立二进制版 (推荐)
+如果您不想安装 Node.js，可以直接从 [Releases](https://github.com/methodalgo/methodalgo-cli/releases) 下载对应平台的二进制文件放入 `PATH`：
+- `methodalgo-macos-arm64` (Apple Silicon)
+- `methodalgo-macos-x64` (Intel Mac)
+- `methodalgo-win-x64.exe` (Windows)
+- `methodalgo-linux-x64` (Linux)
 
-确保您的系统中已安装 Node.js (v18+)。
-
+### 🛠️ npm 开发安装
+如果您拥有 Node.js (v20+) 环境：
 ```bash
-# 在项目目录中执行 (如果已发布)
-# npm install -g @methodalgo/cli
-
 # 本地开发安装
 npm install
-npm link
+npm run build   # 在 binaries/ 目录下产出全平台二进制
+npm link        # 挂载本地命令
 ```
 
 ---
@@ -104,11 +107,14 @@ methodalgo news --json
 从指定频道获取最新的 Alpha 交易信号信息。
 
 ```bash
-# 获取默认频道的 2 条信号
-methodalgo signals --limit 2
+# 获取 ETF 追踪信号 (包含 Inflow 详情)
+methodalgo signals etf-tracker
 
-# 指定特定频道
-methodalgo signals golden-pit-mtf
+# 获取今日市场总结 (包含贪婪/恐慌指数及历史趋势)
+methodalgo signals market-today
+
+# 限制获取 2 条信号
+methodalgo signals --limit 2
 ```
 
 ### 🖥️ 实时仪表盘 (Dashboard)
@@ -141,6 +147,10 @@ methodalgo-cli/
 │       ├── onboard.js    # 交互式引导流程
 │       ├── config-manager.js # 本地配置持久化
 │       └── logger.js     # 特色日志工具
+├── scripts/
+│   ├── build-binary.js   # 全平台一键构建系统
+│   └── sea-launch.cjs    # SEA 运行引导垫片
+├── binaries/             # 二进制分发包产出目录
 ├── package.json
 └── README.md
 ```
