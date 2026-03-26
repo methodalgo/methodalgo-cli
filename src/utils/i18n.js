@@ -18,7 +18,22 @@ const translations = {
         FETCH_SUCCESS: "Fetched {count} items:",
         SNAPSHOT_SUCCESS: "Snapshot fetched successfully [{ticker} {tf}]:",
         INVALID_CMD: "Invalid command: {cmd}\nUse 'methodalgo --help' for available commands.",
-        LABEL_SUGGESTION: "Suggestion: "
+        LABEL_SUGGESTION: "Suggestion: ",
+        SIGNALS_CHANNELS: `Supported Channels:
+- breakout-htf: Detects 1D/3D trends. Alerts on price breaking 100-candle high/low.
+- breakout-mtf: Detects 1H/4H trends. Alerts on price breaking 100-candle high/low.
+- breakout-24h: Continuous rolling detection based on past 24h high/low.
+- liquidation: Large liquidation order alerts.
+- exhaustion-seller/buyer: concentrated inventory reversal signals (<10%).
+- golden-pit-ltf/mtf: Power Ranger 'Smart Cloud' patterns (Pump/Dump).
+- token-unlock: Token unlock event highlights with countdowns.
+- etf-tracker: Daily inflows/outflows for BTC/ETH and SOL/XRP.
+- market-today: Alt Season Index and Fear & Greed Index.`,
+        NEWS_TYPES: `Supported Types:
+- article: Market news & analysis.
+- news: Real-time breaking news.
+- onchain: On-chain abnormality detection.
+- report: Institutional research reports.`
     },
     zh: {
         HELP_DESC: "Methodalgo 市场情报工具 (针对大模型优化版)",
@@ -37,7 +52,22 @@ const translations = {
         FETCH_SUCCESS: "获取到 {count} 条结果:",
         SNAPSHOT_SUCCESS: "快照获取成功 [{ticker} {tf}]:",
         INVALID_CMD: "无效的命令: {cmd}\n使用 'methodalgo --help' 查看可用命令。",
-        LABEL_SUGGESTION: "建议方案: "
+        LABEL_SUGGESTION: "建议方案: ",
+        SIGNALS_CHANNELS: `支持的频道：
+- breakout-htf: 检测1D/3D趋势。在当前K线突破前100根K线高低点时报警。
+- breakout-mtf: 检测1H/4H趋势。在当前K线突破前100根K线高低点时报警。
+- breakout-24h: 基于过去24小时高低点的持续滚动检测。
+- liquidation: 大额强平订单实时提醒。
+- exhaustion-seller/buyer: 基于30分钟强平库存集中度(<10%)的逆转信号。
+- golden-pit-ltf/mtf: 'Smart Cloud' 模式，预示随后会有显著的程序化波动。
+- token-unlock: 代币解锁事件高亮及倒计时计。
+- etf-tracker: BTC/ETH 和 SOL/XRP 每日资金流入/流出追踪。
+- market-today: 每日山寨季指数与贪婪恐惧指数。输出。`,
+        NEWS_TYPES: `支持的类型：
+- article: 深度市场新闻与分析。
+- news: 实时快讯。
+- onchain: 链上数据异动监测。
+- report: 机构研究报告。`
     }
 };
 

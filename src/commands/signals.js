@@ -2,11 +2,12 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { signedRequest } from "../utils/api.js";
 import logger from "../utils/logger.js";
-import { t } from "../utils/i18n.js";
+import { t, getLang } from "../utils/i18n.js";
 
 const signalsCmd = new Command("signals")
     .description(t("SIGNALS_DESC"))
-    .argument("[channel]", "Channel name (default golden-pit-mtf)", "golden-pit-mtf")
+    .argument("[channel]", "Channel name (default: golden-pit-mtf). Use 'methodalgo signals --help' to see all channels.", "golden-pit-mtf")
+    .addHelpText("after", `\n${t("SIGNALS_CHANNELS")}`)
     .option("-l, --limit <number>", "Limit results", "10")
     .option("--json", "Output raw JSON data")
     .action(async (channel, options) => {
@@ -27,8 +28,12 @@ const signalsCmd = new Command("signals")
                     const sig = item.signals && item.signals[0];
                     const title = sig ? sig.title : (item.title || item.content?.substring(0, 50) + "...");
                     const desc = sig ? sig.description : "";
+                    const lang = getLang();
+                    const date = new Date(item.timestamp).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
+                        hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+                    }).replace(/\//g, "-");
 
-                    console.log(`\n${chalk.bold(`[${index + 1}] ${title}`)}`);
+                    console.log(`\n${chalk.bold(`[${index + 1}] ${title}`)} ${chalk.dim(`(${date})`)}`);
                     if (desc) {
                         // 移除 markdown 代码块，并缩进
                         const cleanDesc = desc.replace(/```/g, "").trim().split("\n").map(l => `    ${l}`).join("\n");
