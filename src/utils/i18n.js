@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import config from "./config-manager.js";
 
 const translations = {
@@ -30,20 +31,22 @@ const translations = {
         LABEL_SUGGESTION: "Suggestion: ",
         LABEL_EXAMPLE: "Example: ",
         SIGNALS_CHANNELS: `Supported Channels:
-- breakout-htf: Detects 1D/3D trends. Alerts on price breaking 100-candle high/low.
-- breakout-mtf: Detects 1H/4H trends. Alerts on price breaking 100-candle high/low.
-- breakout-24h: Continuous rolling detection based on past 24h high/low.
-- liquidation: Large liquidation order alerts.
-- exhaustion-seller/buyer: concentrated inventory reversal signals (<10%).
-- golden-pit-ltf/mtf: Power Ranger 'Smart Cloud' patterns (Pump/Dump).
-- token-unlock: Token unlock event highlights with countdowns.
-- etf-tracker: Daily inflows/outflows for BTC/ETH and SOL/XRP.
-- market-today: Alt Season Index and Fear & Greed Index.`,
+${chalk.cyan("- breakout-htf")}: ${chalk.gray("Detects 1D/3D trends. Alerts on breaking high/low within a 100-candle rolling window.")}
+${chalk.cyan("- breakout-mtf")}: ${chalk.gray("Detects 1H/4H trends. Alerts on breaking high/low within a 100-candle rolling window.")}
+${chalk.cyan("- breakout-24h")}: ${chalk.gray("Continuous breakout detection based on a 24-hour rolling window of high/low prices.")}
+${chalk.cyan("- liquidation")}: ${chalk.gray("Large liquidation order alerts.")}
+${chalk.cyan("- exhaustion-seller")}: ${chalk.gray("Reversal signals (Sellers exhausted, price likely to rise), based on Grim Reaper Heatmap.")}
+${chalk.cyan("- exhaustion-buyer")}: ${chalk.gray("Reversal signals (Buyers exhausted, price likely to fall), based on Grim Reaper Heatmap.")}
+${chalk.cyan("- golden-pit-mtf")}: ${chalk.gray("'Smart Cloud' patterns (Pump/Dump), 30m/1h/4h timeframes. Bull Pit: rise after pullback, Bear Pit: fall after rally.")}
+${chalk.cyan("- golden-pit-ltf")}: ${chalk.gray("'Smart Cloud' patterns (Pump/Dump), 5m/15m timeframes. Bull Pit: rise after pullback, Bear Pit: fall after rally.")}
+${chalk.cyan("- token-unlock")}: ${chalk.gray("Token unlock event highlights with countdowns.")}
+${chalk.cyan("- etf-tracker")}: ${chalk.gray("Daily inflows/outflows for BTC/ETH and SOL/XRP.")}
+${chalk.cyan("- market-today")}: ${chalk.gray("Alt Season Index and Fear & Greed Index.")}`,
         NEWS_TYPES: `Supported Types:
-- article: Market news & analysis.
-- breaking: Real-time breaking news.
-- onchain: On-chain abnormality detection.
-- report: Institutional research reports.`,
+${chalk.cyan("- article")}: ${chalk.gray("Market news & analysis.")}
+${chalk.cyan("- breaking")}: ${chalk.gray("Real-time breaking news.")}
+${chalk.cyan("- onchain")}: ${chalk.gray("On-chain abnormality detection.")}
+${chalk.cyan("- report")}: ${chalk.gray("Institutional research reports.")}`,
         ERR_AUTH_FAILED: "API Key Invalid or Expired.",
         GET_API_KEY_LINK: "Get a new key at: https://account.methodalgo.com/account/api-keys",
         RECONFIG_TIP: "Use 'methodalgo config set api-key <key>' to update.",
@@ -63,14 +66,18 @@ const translations = {
         OPT_URL_DESC: "Force return the URL instead of binary (recommended for LLMs)",
         OPT_BUFFER_DESC: "Force return binary buffer and try to render in terminal",
         OPT_SEARCH_DESC: "Search keywords in news titles",
-        OPT_START_DATE_DESC: "Filter news from this date (e.g., 2026-03-20)",
-        OPT_END_DATE_DESC: "Filter news up to this date",
+        OPT_START_DATE_DESC: "Filter news from this date (ISO 8601 or YYYY-MM-DD, e.g., 2026-03-20)",
+        OPT_END_DATE_DESC: "Filter news up to this date (ISO 8601 or YYYY-MM-DD)",
         SNAPSHOT_EXAMPLE: "methodalgo snapshot BTCUSDT 30",
         NEWS_EXAMPLE: "methodalgo news --type breaking --limit 5 --search 'Bitcoin'",
         SIGNALS_EXAMPLE: "methodalgo signals breakout-mtf",
         CONFIG_EXAMPLE: "methodalgo config set lang zh",
         DASHBOARD_EXAMPLE: "methodalgo dashboard",
-        TUI_HINTS: "Q:Quit | Tab:Switch | Enter:Detail"
+        TUI_HINTS: "Q:Quit | Tab:Switch | Enter:Detail",
+        OPT_LIMIT_DESC: "Limit results (max 600, or 100 with --after)",
+        OPT_AFTER_DESC: "Message ID to fetch signals after (for incremental fetching)",
+        SIGNALS_LIMIT_NOTE: "Note: Limit up to 600 if 'after' is not used, 100 if used.",
+        NEWS_LIMIT_NOTE: "Note: News data is from DB, max 500 per request."
     },
     zh: {
         HELP_DESC: "Methodalgo 市场情报工具 (针对大模型优化版)",
@@ -101,20 +108,22 @@ const translations = {
         LABEL_SUGGESTION: "建议方案: ",
         LABEL_EXAMPLE: "示例: ",
         SIGNALS_CHANNELS: `支持的频道：
-- breakout-htf: 检测1D/3D趋势。在当前K线突破前100根K线高低点时报警。
-- breakout-mtf: 检测1H/4H趋势。在当前K线突破前100根K线高低点时报警。
-- breakout-24h: 基于过去24小时高低点的持续滚动检测。
-- liquidation: 大额强平订单实时提醒。
-- exhaustion-seller/buyer: 基于30分钟强平库存集中度(<10%)的逆转信号。
-- golden-pit-ltf/mtf: 'Smart Cloud' 模式，预示随后会有显著的程序化波动。
-- token-unlock: 代币解锁事件高亮及倒计时计。
-- etf-tracker: BTC/ETH 和 SOL/XRP 每日资金流入/流出追踪。
-- market-today: 每日山寨季指数与贪婪恐惧指数。输出。`,
+${chalk.yellow("- breakout-htf")}: ${chalk.gray("检测1D/3D趋势。在当前K线在100根K线的浮动时间窗口中，突破期间最高/低点时的报警。")}
+${chalk.yellow("- breakout-mtf")}: ${chalk.gray("检测1H/4H趋势。在当前K线在100根K线的浮动时间窗口中，突破期间最高/低点时的报警。")}
+${chalk.yellow("- breakout-24h")}: ${chalk.gray("基于过去24小时滚动时间窗口的最高/低点的持续突破检测。")}
+${chalk.yellow("- liquidation")}: ${chalk.gray("大额强平订单实时提醒。")}
+${chalk.yellow("- exhaustion-seller")}: ${chalk.gray("基于死神清算热力图，单边卖家强平库存<10%与<5%的反转信号 (卖家耗尽，价格会上升)。")}
+${chalk.yellow("- exhaustion-buyer")}: ${chalk.gray("基于死神清算热力图，单边买家强平库存<10%与<5%的反转信号 (买家耗尽，价格会下降)。")}
+${chalk.yellow("- golden-pit-mtf")}: ${chalk.gray("'Smart Cloud' 模式，预示随后会有显著的程序化波动 (30m/1h/4h 周期)。Bull Pit 代表短暂回撤后价格会拉升，Bear Pit 代表短暂上扬后价格会继续下降。")}
+${chalk.yellow("- golden-pit-ltf")}: ${chalk.gray("'Smart Cloud' 模式，预示随后会有显著的程序化波动 (5m/15m 周期)。Bull Pit 代表短暂回撤后价格会拉升，Bear Pit 代表短暂上扬后价格会继续下降。")}
+${chalk.yellow("- token-unlock")}: ${chalk.gray("代币解锁事件高亮及倒计时计。")}
+${chalk.yellow("- etf-tracker")}: ${chalk.gray("BTC/ETH 和 SOL/XRP 每日资金流入/流出追踪。")}
+${chalk.yellow("- market-today")}: ${chalk.gray("每日山寨季指数与贪婪恐惧指数。")}`,
         NEWS_TYPES: `支持的类型：
-- article: 深度市场新闻与分析。
-- breaking: 实时快讯。
-- onchain: 链上数据异动监测。
-- report: 机构研究报告。`,
+${chalk.yellow("- article")}: ${chalk.gray("深度市场新闻与分析")}
+${chalk.yellow("- breaking")}: ${chalk.gray("实时快讯")}
+${chalk.yellow("- onchain")}: ${chalk.gray("链上数据异动监测")}
+${chalk.yellow("- report")}: ${chalk.gray("机构研究报告")}`,
         ERR_AUTH_FAILED: "API Key 无效或已过期。",
         GET_API_KEY_LINK: "请在此获取新 Key: https://account.methodalgo.com/zh/account/api-keys",
         RECONFIG_TIP: "请运行 'methodalgo config set api-key <key>' 进行更新。",
@@ -134,14 +143,18 @@ const translations = {
         OPT_URL_DESC: "强制返回 URL 链接而非二进制流 (大模型调用时建议开启)",
         OPT_BUFFER_DESC: "强制返回二进制流并尝试在终端渲染",
         OPT_SEARCH_DESC: "在新闻标题中搜索关键词",
-        OPT_START_DATE_DESC: "从此日期开始筛选 (如: 2026-03-20)",
-        OPT_END_DATE_DESC: "在此日期前筛选",
+        OPT_START_DATE_DESC: "从此日期开始筛选 (支持 ISO 8601 或 YYYY-MM-DD，如: 2026-03-20)",
+        OPT_END_DATE_DESC: "在此日期前筛选 (支持 ISO 8601 或 YYYY-MM-DD)",
         SNAPSHOT_EXAMPLE: "methodalgo snapshot BTCUSDT 30",
         NEWS_EXAMPLE: "methodalgo news --type breaking --limit 5 --search '比特币'",
         SIGNALS_EXAMPLE: "methodalgo signals breakout-mtf",
         CONFIG_EXAMPLE: "methodalgo config set lang zh",
         DASHBOARD_EXAMPLE: "methodalgo dashboard",
-        TUI_HINTS: "Q:退出 | Tab:切换 | Enter:详情"
+        TUI_HINTS: "Q:退出 | Tab:切换 | Enter:详情",
+        OPT_LIMIT_DESC: "获取结果数量 (最高 600，使用 --after 时最高 100)",
+        OPT_AFTER_DESC: "起始消息 ID (用于增量抓取)",
+        SIGNALS_LIMIT_NOTE: "注：不使用 after 时 limit 最高 600，使用时最高 100。",
+        NEWS_LIMIT_NOTE: "注：新闻类数据读取自数据库，单次最高限额 500 条。"
     }
 };
 

@@ -7,13 +7,13 @@ import { t } from "../utils/i18n.js";
 const newsCmd = new Command("news")
     .description(t("NEWS_DESC"))
     .option("-t, --type <type>", "News type. Use 'methodalgo news --help' to see all types.")
-    .option("-l, --limit <number>", "Limit results", "10")
+    .option("-l, --limit <number>", t("OPT_LIMIT_DESC"), "10")
     .option("-g, --language <lang>", "Language (zh, en)", "zh")
     .option("-s, --search <keyword>", t("OPT_SEARCH_DESC"))
     .option("-S, --start-date <date>", t("OPT_START_DATE_DESC"))
     .option("-E, --end-date <date>", t("OPT_END_DATE_DESC"))
     .option("--json", "Output raw JSON data")
-    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("NEWS_EXAMPLE")}\n\n${t("NEWS_TYPES")}`)
+    .addHelpText("after", `\n${t("NEWS_LIMIT_NOTE")}\n\n${t("LABEL_EXAMPLE")}\n  $ ${t("NEWS_EXAMPLE")}\n\n${t("NEWS_TYPES")}`)
     .action(async (options) => {
         if (!options.type) {
             newsCmd.help();
