@@ -1,8 +1,13 @@
 
 
 # 🚀 Methodalgo CLI
+`methodalgo-cli` is an ultra-fast, professional L2 signals & tools terminal based on Node.js. Specially designed for traders and AI agents, it allows users to quickly obtain cryptocurrency market snapshots, news, and signals with deep optimization for LLM workflows.
 
 [English](#english) | [中文](#中文)
+
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
+
 ```text
 ▄▄▄      ▄▄▄             ▄▄             ▄▄   ▄▄▄▄   ▄▄             
 ████▄  ▄████        ██   ██             ██ ▄██▀▀██▄ ██             
@@ -17,11 +22,7 @@
 <a name="english"></a>
 ## English
 
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
 
-### Overview
-`methodalgo-cli` is an ultra-fast, professional L2 signals & tools terminal based on Node.js. Specially designed for traders and AI agents, it allows users to quickly obtain cryptocurrency market snapshots, news, and signals with deep optimization for LLM workflows.
 
 ### 🚀 Highlights
 
@@ -34,13 +35,13 @@
 
 ### 🛠️ Installation 
 
-#### 🌟 Recommended: NPM Global Install
+####  Recommended: NPM Global Install
 This is the fastest and easiest way to upgrade. Ensure [Node.js](https://nodejs.org/) (v20+) is installed on your system:
 ```bash
 npm install -g methodalgo-cli
 ```
 
-#### 📦 Other Installation Methods
+####  Other Installation Methods
 
 **1. Standalone Binary (No Node.js Required)**
 Download the binary for your platform from [Releases](https://github.com/methodalgo/methodalgo-cli/releases). To make it globally accessible:
@@ -147,13 +148,10 @@ Get multi-language crypto market news filtered by AI.
 <a name="中文"></a>
 ## 中文
 
-[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
-![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
-
-### 项目概览
+### 概览
 `methodalgo-cli` 是一个基于 Node.js 开发的极速、专业的加密货币市场 L2 信号与工具终端。它专为交易者与 AI 代理设计，集成了市场快照、新闻与信号抓取，并针对 LLM 工作流进行了深度优化。
 
-### 🖥️ 功能亮点
+### 亮点
 
 - ⚡ **极致速度**: 基于 Node SEA 打造，启动毫秒级。
 - 🖼️ **终端绘图**: 深度适配 iTerm2，无需离开终端即可预览截图。
@@ -164,13 +162,13 @@ Get multi-language crypto market news filtered by AI.
 
 ### 🛠️ 安装指南
 
-#### 🌟 推荐方式：NPM 全局安装
+####  推荐：NPM 全局安装
 这是最快速、最易于升级的方式。确保您的系统已安装 [Node.js](https://nodejs.org/) (v20+):
 ```bash
 npm install -g methodalgo-cli
 ```
 
-#### 📦 其他安装方式
+####  其他安装方式
 
 **1. 独立二进制版 (无需 Node.js)**
 从 [Releases](https://github.com/methodalgo/methodalgo-cli/releases) 下载对应平台的二进制文件。为了全局调用，建议：
