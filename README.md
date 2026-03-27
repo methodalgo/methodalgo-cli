@@ -1,12 +1,14 @@
 
 
 # 🚀 Methodalgo CLI
-`methodalgo-cli` is an ultra-fast, professional L2 signals & tools terminal based on Node.js. Specially designed for traders and AI agents, it allows users to quickly obtain cryptocurrency market snapshots, news, and signals with deep optimization for LLM workflows.
+`methodalgo-cli` is an ultra-fast, professional crypto news and L2 signals terminal based on Node.js. Specially designed for traders and AI agents, it allows users to quickly obtain cryptocurrency market snapshots, news, and signals with deep optimization for LLM workflows.
 
-[English](#english) | [中文](#中文)
+[English](#english) | [中文](#中文) | [Website](https://www.methodalgo.com)
 
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 ![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
+[![NPM Version](https://img.shields.io/npm/v/methodalgo-cli.svg)](https://www.npmjs.com/package/methodalgo-cli)
+
 
 ```text
 ▄▄▄      ▄▄▄             ▄▄             ▄▄   ▄▄▄▄   ▄▄             
@@ -25,51 +27,53 @@
 
 
 ### 🚀 Highlights
-
+- 🤖 **AI Friendly**: Clean JSON output, perfect for AI Agentic skills integration.
 - ⚡ **Lightning Fast**: Built on Node SEA, millisecond startup time.
 - 🖼️ **Terminal Rendering**: Deeply compatible with iTerm2 for previewing snapshots in-terminal.
 - 🌍 **Multi-language**: Native support for Chinese and English.
-- 🤖 **AI Friendly**: Clean JSON output, perfect for AI Agent integration.
+
 
 ---
 
 ### 🛠️ Installation 
 
-####  Recommended: NPM Global Install
+####  Recommended: NPM Install
 This is the fastest and easiest way to upgrade. Ensure [Node.js](https://nodejs.org/) (v20+) is installed on your system:
 ```bash
 npm install -g methodalgo-cli
+methodalgo
 ```
+*Note: this method can auto update when new version released.*
 
-####  Other Installation Methods
+####  Alternative: Standalone Binary 
 
-**1. Standalone Binary (No Node.js Required)**
-Download the binary for your platform from [Releases](https://github.com/methodalgo/methodalgo-cli/releases). To make it globally accessible:
+No Node.js Required, Download the binary from [Releases](https://github.com/methodalgo/methodalgo-cli/releases). To make it globally accessible:
 - **macOS / Linux**: Move the binary to `/usr/local/bin` and rename it to `methodalgo`:
   ```bash
   sudo mv methodalgo-macos-arm64 /usr/local/bin/methodalgo
   sudo chmod +x /usr/local/bin/methodalgo
+  methodalgo
   ```
 - **Windows**: Add the folder containing `methodalgo-win-x64.exe` to your [System Environment Variables](https://www.google.com/search?q=how+to+add+to+path+windows).
 
-**2. Install from Source**
+#### Alternative: Install from Source
 ```bash
 git clone https://github.com/methodalgo/methodalgo-cli.git
 cd methodalgo-cli
 npm install
 npm link        # Link local command
+methodalgo
 ```
 
 ---
-#### 🖥️ Market Dashboard (`dashboard`)
+#### 🖥️  Dashboard TUI (`dashboard`)
 Launch a real-time TUI (Terminal User Interface) dashboard for a global view of market insights, news, and signals.
 
 ![Dashboard Preview](./screenshot/dashboard.jpg)
 
-*   **Usage**: `methodalgo dashboard` (Alias: `top`)
+*   **Usage**: `methodalgo dashboard` 
 *   **Controls**: Use `TAB` to switch panels, `UP/DOWN` to scroll, and `ENTER` to view details.
 
-**Example**: `methodalgo dashboard`
 
 --- 
 
@@ -142,6 +146,10 @@ Get multi-language crypto market news filtered by AI.
 ]
 ```
 
+#### 🆙 Update Tool (`update`)
+Update `methodalgo-cli` to the latest version.
+
+*   **Usage**: `methodalgo update`
 
 ---
 
@@ -149,55 +157,56 @@ Get multi-language crypto market news filtered by AI.
 ## 中文
 
 ### 概览
-`methodalgo-cli` 是一个基于 Node.js 开发的极速、专业的加密货币市场 L2 信号与工具终端。它专为交易者与 AI 代理设计，集成了市场快照、新闻与信号抓取，并针对 LLM 工作流进行了深度优化。
+`methodalgo-cli` 是一个基于 Node.js 开发的极速、专业的加密货币新闻与 L2 信号工具终端。它专为交易者与 AI 代理设计，集成了市场快照、新闻与信号抓取，并针对 LLM 工作流进行了深度优化。
 
 ### 亮点
 
+- 🤖 **LLM 友好**: 提供结构清晰的 JSON 输出，完美适配 AI Agent 技能集成。
 - ⚡ **极致速度**: 基于 Node SEA 打造，启动毫秒级。
 - 🖼️ **终端绘图**: 深度适配 iTerm2，无需离开终端即可预览截图。
 - 🌍 **多语言**: 原生支持中英双语切换。
-- 🤖 **LLM 友好**: 提供结构清晰的 JSON 输出，完美适配 AI Agent 集成。
 
 ---
 
 ### 🛠️ 安装指南
 
-####  推荐：NPM 全局安装
+####  推荐：NPM 安装
 这是最快速、最易于升级的方式。确保您的系统已安装 [Node.js](https://nodejs.org/) (v20+):
 ```bash
 npm install -g methodalgo-cli
+methodalgo
 ```
+*注：此方式在发布新版本时可自动更新。*
 
-####  其他安装方式
+####  其他方式：独立二进制版
 
-**1. 独立二进制版 (无需 Node.js)**
-从 [Releases](https://github.com/methodalgo/methodalgo-cli/releases) 下载对应平台的二进制文件。为了全局调用，建议：
+无需 Node.js，缺点是包比较大, 直接从 [Releases](https://github.com/methodalgo/methodalgo-cli/releases) 下载对应平台的二进制文件。为了全局调用，建议：
 - **macOS / Linux**: 将文件移动到 `/usr/local/bin` 并重命名为 `methodalgo`:
   ```bash
   sudo mv methodalgo-macos-arm64 /usr/local/bin/methodalgo
   sudo chmod +x /usr/local/bin/methodalgo
+  methodalgo
   ```
 - **Windows**: 将包含 `methodalgo-win-x64.exe` 的文件夹路径添加到系统的 [环境变量 PATH](https://www.baidu.com/s?wd=%E5%A6%82%E4%BD%95%E5%B0%86%E6%96%87%E4%BB%B6%E5%A4%B9%E6%B7%BB%E5%8A%A0%E5%88%B0PATH) 中。
 
-**2. 开发源码安装**
+#### 其他方式：源码安装
 ```bash
 git clone https://github.com/methodalgo/methodalgo-cli.git
 cd methodalgo-cli
 npm install
 npm link        # 链接本地指令
+methodalgo
 ```
 
 ---
 
-#### 🖥️ 市场看板 (`dashboard`)
+#### 🖥️  Dashboard TUI (`dashboard`)
 启动实时 TUI（终端用户界面）仪表盘，全局俯瞰市场洞察、新闻与信号。
 
 ![Dashboard Preview](./screenshot/dashboard.jpg)
 
-*   **用法**: `methodalgo dashboard` (别名: `top`)
+*   **用法**: `methodalgo dashboard` 
 *   **操作**: 使用 `TAB` 切换面板，`UP/DOWN` 滚动列表，`ENTER` 弹出详情。
-
-**示例**: `methodalgo dashboard`
 
 ---
 
@@ -269,6 +278,12 @@ npm link        # 链接本地指令
   }
 ]
 ```
+
+#### 🆙 更新工具 (`update`)
+将 `methodalgo-cli` 更新至最新版本。
+
+*   **用法**: `methodalgo update`
+
 ---
 
 *Powered by Methodalgo.*

@@ -7,6 +7,7 @@ import snapshotCmd from "./commands/snapshot.js";
 import newsCmd from "./commands/news.js";
 import signalsCmd from "./commands/signals.js";
 import dashboardCmd from "./commands/dashboard.js";
+import updateCmd from "./commands/update.js";
 import logoutCmd from "./commands/logout.js";
 import config from "./utils/config-manager.js";
 import { startOnboarding } from "./utils/onboard.js";
@@ -39,6 +40,7 @@ program.addCommand(snapshotCmd.description(t("SNAPSHOT_DESC")));
 program.addCommand(newsCmd.description(t("NEWS_DESC")));
 program.addCommand(signalsCmd.description(t("SIGNALS_DESC")));
 program.addCommand(dashboardCmd.description(t("DASHBOARD_DESC")));
+program.addCommand(updateCmd.description(t("UPDATE_DESC")));
 program.addCommand(logoutCmd);
 
 // 确保所有层级的指令（包括嵌套子指令）在参数缺失/报错时也显示帮助信息
