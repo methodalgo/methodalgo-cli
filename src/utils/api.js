@@ -45,13 +45,23 @@ export async function signedRequest(endpoint, params = {}, extraOptions = {}) {
     });
 
     if (!response.ok) {
-        const error = new Error(`Request failed with status ${response.status}`);
+        let serverMsg = "";
+        try {
+            const errorData = await response.json();
+            serverMsg = errorData.msg || errorData.message || "";
+        } catch (_) {}
+        const error = new Error(serverMsg || `Request failed with status ${response.status}`);
         error.status = response.status;
         throw error;
     }
 
+    if (extraOptions.responseType === "arraybuffer") {
+        const data = await response.arrayBuffer();
+        return { data, headers: Object.fromEntries(response.headers.entries()) };
+    }
+
     const data = await response.json();
-    return { data }; // 模拟 axios 的返回结构
+    return { data, headers: Object.fromEntries(response.headers.entries()) };
 }
 
 /**

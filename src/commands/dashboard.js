@@ -56,21 +56,14 @@ const ClockPanel = ({ focused }) => {
     }, []);
     const opts = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
     const bc = focused ? "red" : "white";
-    return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, flexGrow: 1, height: "100%" },
-        h(Text, { bold: true, color: "yellow" }, " World Clocks"),
-        h(Box, { flexDirection: "column", paddingX: 1, paddingTop: 1 },
-            h(Box, { flexDirection: "column", marginBottom: 1 },
-                h(Text, { color: "yellow" }, "LOCAL TIME"),
-                h(Text, { bold: true, color: "white" }, now.toLocaleTimeString("zh-CN", opts))
-            ),
-            h(Box, { flexDirection: "column", marginBottom: 1 },
-                h(Text, { color: "yellow" }, "LONDON (GMT)"),
-                h(Text, { bold: true, color: "white" }, now.toLocaleTimeString("en-GB", { ...opts, timeZone: "Europe/London" }))
-            ),
-            h(Box, { flexDirection: "column" },
-                h(Text, { color: "yellow" }, "NEW YORK (EST)"),
-                h(Text, { bold: true, color: "white" }, now.toLocaleTimeString("en-US", { ...opts, timeZone: "America/New_York" }))
-            )
+    return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, flexGrow: 0, height: 4, paddingX: 1, overflow: "hidden" },
+        h(Box, { flexDirection: "row" },
+            h(Text, { bold: true, color: "yellow" }, " 🕒 Market clock")
+        ),
+        h(Box, { flexDirection: "row", justifyContent: "space-between" },
+            h(Text, null, `${now.toLocaleTimeString("zh-CN", opts)} (LOCAL)  `),
+            h(Text, null, `${now.toLocaleTimeString("en-GB", { ...opts, timeZone: "Europe/London" })} (LSE)  `),
+            h(Text, null, `${now.toLocaleTimeString("en-US", { ...opts, timeZone: "America/New_York" })} (NYSE) `)
         )
     );
 };
@@ -117,13 +110,20 @@ const PanelList = ({ label, items, focused, onSelect, maxVisible = 6 }) => {
     return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, flexGrow: 1, overflow: "hidden" },
         h(Text, { bold: true, color: "red", wrap: "truncate" }, ` ${label}${countLabel}${scrollHint}`),
         items.length === 0
-            ? h(Text, { color: "gray" }, " Loading...")
+            ? h(Box, { flexGrow: 1, alignItems: "center", justifyContent: "center" }, 
+                ...gradientText("Loading...", [255, 60, 60], [255, 255, 255]))
             : visibleItems.map((item, vi) => {
                 const realIdx = scrollTop + vi;
+                const isFocused = realIdx === selectedIdx && focused;
+                
+                // 颜色逻辑：选中状态保持红色背景，非选中状态根据方向上色
+                let textColor = "white";
+                if (!isFocused && item.direction === "bear") textColor = "red";
+                
                 return h(Text, {
                     key: realIdx,
-                    backgroundColor: (realIdx === selectedIdx && focused) ? "red" : undefined,
-                    color: "white",
+                    backgroundColor: isFocused ? "red" : undefined,
+                    color: textColor,
                     wrap: "truncate"
                 }, ` [${formatTime(item.publish_date || item.timestamp)}] ${item.displayTitle || ""}`);
             })
@@ -136,13 +136,17 @@ const DetailDialog = ({ data, category, onClose }) => {
     const termRows = process.stdout.rows || 40;
     const termCols = process.stdout.columns || 80;
     // 结构化渲染内容
-    const title = data?.displayTitle || data?.title || "";
+    const title = data.displayTitle || data.title?.[getLang()] || data.title?.en || data.title || "Detail";
     const time = data?.publish_date || data?.timestamp || "";
-    const url = data?.url || "";
-    const content = data?.content || data?.fullText || "No detailed content";
-    const contentLines = content.split("\n");
-    const HEADER = 8; // 标题区占行数
-    const FOOTER = 3; // 底部按钮+滚动提示
+    const rawUrl = data?.url || "";
+    const url = (rawUrl === "N/A" || !rawUrl) ? "" : rawUrl;
+    
+    let content = data?.content || data?.fullText || "";
+    if (content.includes("No detailed content available.") || content === "No detailed content") content = "";
+    
+    const contentLines = content ? content.split("\n") : [];
+    const HEADER = 8;
+    const FOOTER = 3;
     const VISIBLE = Math.max(3, termRows - HEADER - FOOTER);
 
     useInput((input, key) => {
@@ -153,17 +157,19 @@ const DetailDialog = ({ data, category, onClose }) => {
 
     const sep = "─".repeat(Math.min(60, termCols - 6));
     const visibleContent = contentLines.slice(scrollOffset, scrollOffset + VISIBLE);
+    
     return h(Box, {
         flexDirection: "column", borderStyle: "double", borderColor: "red",
         paddingX: 1, width: "100%", height: termRows
     },
-        // 分类标签
-        h(Box, { marginBottom: 0 },
-            h(Text, { backgroundColor: "red", color: "white", bold: true }, ` ${category || "Detail"} `)
+        // Category Label (Large)
+        h(Box, { marginBottom: 1 },
+            h(Text, { backgroundColor: "red", color: "white", bold: true }, `  ${(category || "Detail").toUpperCase()}  `)
         ),
-        // 标题
+        // Title (Bold)
         h(Text, { color: "yellow", bold: true, wrap: "wrap" }, title),
-        // 元数据行
+        h(Box, { height: 1 }), // Spacer
+        // Metadata
         h(Box, { gap: 2 },
             h(Text, null, h(Text, { color: "gray" }, "Time: "), h(Text, { color: "cyan" }, time || "N/A")),
         ),
@@ -174,17 +180,18 @@ const DetailDialog = ({ data, category, onClose }) => {
                 return aurl ? h(Text, { key: i, color: "blue", wrap: "truncate" }, `Attachment: ${aurl}`) : null;
             })
         ) : null,
-        // 分隔线
-        h(Text, { color: "gray", dimColor: true }, sep),
-        // 正文内容（可滚动）
-        h(Box, { flexDirection: "column", flexGrow: 1 },
+        
+        // Content Section
+        content ? h(Box, { flexDirection: "column", flexGrow: 1, marginTop: 1 },
+            h(Text, { color: "gray", dimColor: true }, sep),
             ...visibleContent.map((line, i) => h(Text, { key: i, wrap: "wrap", color: "white" }, line || " "))
-        ),
-        // 滚动提示
+        ) : h(Box, { flexGrow: 1 }),
+
+        // Scroll Info
         contentLines.length > VISIBLE
             ? h(Text, { color: "gray" }, ` Scroll: Up/Down (${scrollOffset + 1}-${Math.min(scrollOffset + VISIBLE, contentLines.length)}/${contentLines.length})`)
             : null,
-        // 底部操作栏
+        // Toolbar
         h(Box, { justifyContent: "center", borderStyle: "single", borderColor: "gray", borderTop: true, borderBottom: false, borderLeft: false, borderRight: false },
             h(Text, { backgroundColor: "red", color: "white", bold: true }, " ESC "),
             h(Text, { color: "gray" }, " Close  "),
@@ -196,15 +203,11 @@ const DetailDialog = ({ data, category, onClose }) => {
 
 // ── Loading 屏幕（带 Spinner） ───────────────────────────────
 const LoadingScreen = () => {
-    const [progress, setProgress] = useState(0);
     const [dots, setDots] = useState(1);
     useEffect(() => {
-        const timer = setInterval(() => setProgress(p => Math.min(95, p + Math.floor(Math.random() * 15))), 150);
-        const dotTimer = setInterval(() => setDots(d => (d % 3) + 1), 400);
-        return () => { clearInterval(timer); clearInterval(dotTimer); };
+        const timer = setInterval(() => setDots(d => (d % 3) + 1), 400);
+        return () => clearInterval(timer);
     }, []);
-    const filled = Math.floor(progress / 5);
-    const bar = "█".repeat(filled) + "░".repeat(20 - filled);
     return h(Box, { flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" },
         h(Text, { color: "red", bold: true }, "▄▄▄      ▄▄▄             ▄▄             ▄▄   ▄▄▄▄   ▄▄             "),
         h(Text, { color: "red", bold: true }, "████▄  ▄████        ██   ██             ██ ▄██▀▀██▄ ██             "),
@@ -214,14 +217,13 @@ const LoadingScreen = () => {
         h(Text, null, " "),
         h(Box, { gap: 1 },
             h(Spinner, { color: "red" }),
-            h(Text, { color: "yellow" }, `Fetching Global Alpha Insights${".".repeat(dots)}`)
-        ),
-        h(Text, { color: "red" }, `[${bar}] ${progress}%`)
+            ...gradientText(`Fetching Global Alpha Insights${".".repeat(dots)}`, [255, 60, 60], [255, 255, 255])
+        )
     );
 };
 
 // ── 主 Dashboard 组件 ──────────────────────────────────────
-const PANELS = ["article", "breaking", "onchain", "report", "signals", "clock"];
+const PANELS = ["article", "breaking", "onchain", "report", "breakout", "exhaustion", "goldenPit", "liquidation", "clock", "marketToday", "tokenUnlock"];
 
 const Dashboard = () => {
     const { exit } = useApp();
@@ -229,27 +231,29 @@ const Dashboard = () => {
     const [authError, setAuthError] = useState(false);
     const [focusIdx, setFocusIdx] = useState(0);
     const [dialog, setDialog] = useState(null);
-    const [caches, setCaches] = useState({ article: [], breaking: [], onchain: [], report: [], signals: [] });
-    const [statusInfo, setStatusInfo] = useState({ time: "", mem: "0" });
+    const [caches, setCaches] = useState({
+        article: [], breaking: [], onchain: [], report: [],
+        breakout: [], exhaustion: [], goldenPit: [], liquidation: [],
+        marketToday: [], tokenUnlock: []
+    });
+    const [statusInfo, setStatusInfo] = useState({ time: "", mem: "0", error: null });
     const dataTimerRef = useRef(null);
     const lastFetchRef = useRef(null); // 记录上次拉取时间，用于增量请求
     const lang = getLang();
 
     const refreshData = async () => {
         const memUsage = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
-        setStatusInfo({ time: new Date().toLocaleTimeString(), mem: memUsage });
         try {
             const newsTypes = ["article", "breaking", "onchain", "report"];
+            const signalChannels = ["breakout-mtf", "exhaustion-buyer", "exhaustion-seller", "golden-pit-ltf", "golden-pit-mtf", "liquidation", "market-today", "token-unlock"];
             const isFirstFetch = !lastFetchRef.current;
-            // 首次拉取100条基础数据，后续增量只取20条
             const newsLimit = isFirstFetch ? 100 : 20;
+            const sigLimit = isFirstFetch ? 50 : 15;
             const startDate = isFirstFetch ? undefined : lastFetchRef.current;
+
             const promises = [
-                ...newsTypes.map(type => signedRequest("/mcp/news", {
-                    type, limit: newsLimit, lang,
-                    ...(startDate ? { startDate } : {})
-                })),
-                signedRequest("/mcp/signals", { channelName: "golden-pit-mtf", limit: isFirstFetch ? 50 : 15 })
+                ...newsTypes.map(type => signedRequest("/mcp/news", { type, limit: newsLimit, lang, ...(startDate ? { startDate } : {}) })),
+                ...signalChannels.map(channelName => signedRequest("/mcp/signals", { channelName, limit: sigLimit }))
             ];
             const results = await Promise.allSettled(promises);
 
@@ -260,11 +264,11 @@ const Dashboard = () => {
             );
             if (authFailed) { setAuthError(true); setLoading(false); if (dataTimerRef.current) clearInterval(dataTimerRef.current); return; }
 
-            // 记录本次拉取时间，供下次增量使用
             lastFetchRef.current = new Date().toISOString();
 
             setCaches(prev => {
                 const next = { ...prev };
+                // Process News
                 newsTypes.forEach((type, idx) => {
                     const res = results[idx];
                     if (res.status === "fulfilled" && res.value.data.status) {
@@ -272,60 +276,218 @@ const Dashboard = () => {
                         const existingTitles = new Set(prev[type].map(n => n.title?.[lang] || n.title?.en));
                         const uniqueNew = newData.filter(n => !existingTitles.has(n.title?.[lang] || n.title?.en));
                         next[type] = [...uniqueNew, ...prev[type]].slice(0, 100).map(item => {
-                            const rawTitle = item.title?.[lang] || item.title?.en || "";
-                            item.fullText = `Title: ${rawTitle}\n\nTime: ${item.publish_date}\n\nURL: ${item.url || "N/A"}\n\n--- Content ---\n${item.content || "No detailed content available."}`;
+                            const rawTitle = (typeof item.title === "object" && item.title !== null) ? (item.title[lang] || item.title.en || "") : (item.title || "");
+                            const rawContent = item.content || item.summary || item.excerpt || item.description || "";
+                            const content = (typeof rawContent === "object" && rawContent !== null) ? (rawContent[lang] || rawContent.en || JSON.stringify(rawContent)) : (rawContent || "No detailed content available.");
+                            
+                            item.fullText = `Title: ${rawTitle}\n\nTime: ${item.publish_date}\n\nURL: ${item.url || "N/A"}\n\n--- Content ---\n${content}`;
                             item.displayTitle = cleanText(rawTitle);
                             return item;
                         });
                     }
                 });
-                const sigRes = results[results.length - 1];
-                if (sigRes.status === "fulfilled" && sigRes.value.data.status) {
-                    const newData = sigRes.value.data.data;
-                    const existingIds = new Set(prev.signals.map(s => s.id));
-                    const uniqueNew = newData.filter(s => !existingIds.has(s.id));
-                    next.signals = [...uniqueNew, ...prev.signals].slice(0, 50).map(item => {
-                        const sig = item.signals?.[0];
-                        let breakPrice = sig?.details?.BreakPrice || sig?.breakPrice || sig?.break_price || item.breakPrice || item.break_price;
-                        if (!breakPrice) {
-                            const fields = sig?.fields || sig?.embeds?.[0]?.fields;
-                            if (fields) {
-                                const field = fields.find(f => f.name?.includes("BreakPrice") || f.name?.includes("Price"));
-                                if (field) breakPrice = field.value;
-                            }
-                        }
-                        const rawTitle = sig ? sig.title : (item.title || "Signal Tip");
-                        const attachments = [...(item.attachments || [])];
-                        if (sig?.image) attachments.push({ url: sig.image });
 
-                        item.fullText = `Signal: ${rawTitle}\n${breakPrice ? `BreakPrice: ${breakPrice}\n` : ""}Timestamp: ${item.timestamp}\n\n--- Details ---\n${JSON.stringify(item.signals || item, null, 2)}`;
-                        item.displayTitle = cleanText(rawTitle) + (breakPrice ? ` (BP:${breakPrice})` : "");
-                        item.attachments = attachments;
-                        return item;
+                // Process Signals & Info
+                const sigStartIndex = newsTypes.length;
+                const getSigData = (channelOffset) => {
+                    const res = results[sigStartIndex + channelOffset];
+                    return (res?.status === "fulfilled" && res.value.data.status) ? res.value.data.data : [];
+                };
+
+                const formatSig = (item, overrideDir, type) => {
+                    const sig = item.signals?.[0];
+                    let breakPrice = sig?.details?.BreakPrice || sig?.breakPrice || sig?.break_price || item.breakPrice || item.break_price;
+                    if (!breakPrice && sig?.fields) {
+                        const field = sig.fields.find(f => f.name?.includes("BreakPrice") || f.name?.includes("Price"));
+                        if (field) breakPrice = field.value;
+                    }
+                    let rawTitle = sig ? sig.title : (item.title || "Signal Tip");
+                    const attachments = [...(item.attachments || [])];
+                    if (sig?.image) attachments.push({ url: sig.image });
+                    
+                    // 方向检测改进
+                    let direction = overrideDir || item.direction || "";
+                    const side = (sig?.side || sig?.details?.Side || "").toLowerCase();
+
+                    if (!direction) {
+                        const searchStr = `${rawTitle} ${sig?.description || ""} ${item.title || ""}`.toLowerCase();
+                        if (side === "buy" || side === "up" || searchStr.includes("bull") || searchStr.includes("up") || searchStr.includes("exhaustion seller") || (type === "liquidation" && side === "buy")) {
+                            direction = "bull";
+                        } else if (side === "sell" || side === "down" || searchStr.includes("bear") || searchStr.includes("down") || searchStr.includes("exhaustion buyer") || (type === "liquidation" && side === "sell")) {
+                            direction = "bear";
+                        } else if (searchStr.includes("long")) {
+                            direction = type === "liquidation" ? "bear" : "bull";
+                        } else if (searchStr.includes("short")) {
+                            direction = type === "liquidation" ? "bull" : "bear";
+                        }
+                    }
+                    item.direction = direction;
+
+                    // 标题重写逻辑 (根据需求精调)
+                    let symbol = sig?.symbol || item.symbol || "";
+                    if (!symbol) {
+                        const m = rawTitle.match(/\s(?:[Ff]or|[Oo]n)\s+([A-Z0-9.]+)/);
+                        if (m) symbol = m[1];
+                        else {
+                            const m2 = rawTitle.match(/\b([A-Z0-9.]+)[^\w]*$/);
+                            if (m2) symbol = m2[1];
+                        }
+                    }
+
+                    if (type === "goldenPit") {
+                        const prefix = direction === "bull" ? t("GOLDEN_PIT_BULL") : t("GOLDEN_PIT_BEAR");
+                        rawTitle = `${prefix} For ${symbol}`;
+                    } else if (type === "breakout") {
+                        const prefix = direction === "bull" ? t("BREAKOUT_UP") : t("BREAKOUT_DOWN");
+                        rawTitle = `${prefix} For ${symbol}`;
+                    } else if (type === "liquidation") {
+                        const prefix = direction === "bull" ? t("LIQUIDATION_SHORT") : t("LIQUIDATION_LONG");
+                        rawTitle = `${prefix} For ${symbol}`;
+                    }
+                    
+                    // Special Content Cleanup
+                    let detailsText = JSON.stringify(item.signals || item, null, 2);
+                    if (type === "marketToday" && sig?.description) {
+                        const lines = sig.description.split("\n").filter(line => !line.trim().startsWith("http")).filter(line => !line.includes("Season Index"));
+                        detailsText = lines.join("\n").trim();
+                    } else if (type === "tokenUnlock" && sig?.description) {
+                        detailsText = sig.description.split("\n").filter(l => !l.trim().startsWith("http")).join("\n").trim();
+                        const tokens = [...detailsText.matchAll(/Token:\s*(\w+)/g)].map(m => m[1]);
+                        if (tokens.length > 0) rawTitle = `Unlock: ${tokens.slice(0, 3).join(", ")}${tokens.length > 3 ? "..." : ""}`;
+                    }
+
+                    item.fullText = `Signal: ${rawTitle}\n${breakPrice ? `BreakPrice: ${breakPrice}\n` : ""}Timestamp: ${item.timestamp}\n\n--- Details ---\n${detailsText}`;
+                    item.displayTitle = cleanText(rawTitle) + (breakPrice ? ` (BP:${breakPrice})` : "");
+                    item.attachments = attachments;
+                    return item;
+                };
+
+                const mergeAndSort = (items, existing, overrideDir, type, preferNew = false) => {
+                    const combined = preferNew ? [...items, ...existing] : [...items.filter(i => !new Set(existing.map(e => e.id)).has(i.id)), ...existing];
+                    const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+                    return unique.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 50).map(i => formatSig(i, overrideDir, type));
+                };
+
+                next.breakout = mergeAndSort(getSigData(0), prev.breakout, null, "breakout");
+                next.exhaustion = mergeAndSort([
+                    ...getSigData(1).map(i => ({ ...i, direction: "bear" })),
+                    ...getSigData(2).map(i => ({ ...i, direction: "bull" }))
+                ], prev.exhaustion, null, "exhaustion");
+                next.goldenPit = mergeAndSort(getSigData(3).concat(getSigData(4)), prev.goldenPit, null, "goldenPit");
+                next.liquidation = mergeAndSort(getSigData(5), prev.liquidation, null, "liquidation");
+                
+                // 处理 Market Today (本地化情绪)
+                const rawMarketToday = getSigData(6);
+                const processedMarketToday = [];
+                rawMarketToday.forEach(item => {
+                    item.signals?.forEach(sig => {
+                        const title = sig.title || "";
+                        const desc = sig.description || "";
+                        if (title.includes("Fear") || title.includes("Greed") || desc.includes("Fear And Greed")) {
+                            const today = desc.match(/Today:\s*(\d+)/)?.[1] || sig.details?.Today || sig.details?.["Today Index"] || "";
+                            const rawSentiment = desc.match(/Sentiment:\s*([^\n]+)/)?.[1]?.replace("```", "").trim() || sig.details?.Sentiment || "";
+                            
+                            // 本地化情绪字符串
+                            let sentiment = rawSentiment;
+                            if (getLang() === "zh") {
+                                const sMap = { "Extreme Fear": "SENTIMENT_EXTREME_FEAR", "Fear": "SENTIMENT_FEAR", "Neutral": "SENTIMENT_NEUTRAL", "Greed": "SENTIMENT_GREED", "Extreme Greed": "SENTIMENT_EXTREME_GREED" };
+                                sentiment = t(sMap[rawSentiment] || rawSentiment);
+                            }
+
+                            const suffix = today ? `: ${today} (${sentiment})` : "";
+                            const lines = desc.split("\n").filter(l => !l.trim().startsWith("http"));
+                            processedMarketToday.push({
+                                ...item,
+                                id: `${item.id}-fg`,
+                                timestamp: item.timestamp,
+                                signals: [{ ...sig, title: `${t("LABEL_FEAR_GREED")}${suffix}`, description: lines.join("\n").trim() }]
+                            });
+                        }
                     });
-                }
+                });
+                next.marketToday = mergeAndSort(processedMarketToday, prev.marketToday, null, "marketToday", true);
+
+                // 解锁内容分拆
+                const rawTokenUnlock = getSigData(7);
+                const processedTokenUnlock = [];
+                rawTokenUnlock.forEach(item => {
+                    const sig = item.signals?.[0];
+                    if (!sig?.description) { processedTokenUnlock.push(item); return; }
+                    
+                    if (typeof sig.description === "object" && sig.description !== null) {
+                        const entries = Object.entries(sig.description);
+                        if (entries.length === 0) { processedTokenUnlock.push(item); return; }
+                        entries.forEach(([label, value], idx) => {
+                            processedTokenUnlock.push({
+                                ...item,
+                                id: `${item.id}-${idx}`,
+                                signals: [{
+                                    ...sig,
+                                    title: `Unlock: ${label.split("\n")[0].trim()}`,
+                                    description: `${label}\n${typeof value === "string" ? value.replace(/```/g, "") : JSON.stringify(value)}`
+                                }]
+                            });
+                        });
+                    } else if (typeof sig.description === "string") {
+                        const parts = sig.description.split(/\[\d+\]\s+Token:/g);
+                        if (parts.length <= 1) { processedTokenUnlock.push(item); return; }
+                        parts.forEach((p, idx) => {
+                            if (idx === 0 || !p.trim()) return;
+                            const tokenName = p.trim().split("\n")[0].trim();
+                            processedTokenUnlock.push({ ...item, id: `${item.id}-${idx}`, signals: [{ ...sig, title: `Unlock: ${tokenName}`, description: `Token: ${tokenName}\n${p.trim()}` }] });
+                        });
+                    } else {
+                        processedTokenUnlock.push(item);
+                    }
+                });
+                next.tokenUnlock = mergeAndSort(processedTokenUnlock, prev.tokenUnlock, null, "tokenUnlock", true);
+
                 return next;
             });
-        } catch (_) {}
+            setStatusInfo({ time: new Date().toLocaleTimeString(), mem: memUsage, error: null });
+            if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
+            dataTimerRef.current = setTimeout(refreshData, 60000);
+        } catch (error) {
+            if (error.status === 429) {
+                const secMatch = error.message.match(/(\d+)\s+seconds/);
+                const minMatch = error.message.match(/(\d+)\s+minutes/);
+                let delay = 60000;
+                if (secMatch) delay = parseInt(secMatch[1]) * 1000 + 2000;
+                else if (minMatch) delay = parseInt(minMatch[1]) * 60000 + 2000;
+                setStatusInfo(prev => ({ ...prev, error: `Rate Limited (Retry in ${Math.round(delay / 1000)}s)` }));
+                if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
+                dataTimerRef.current = setTimeout(refreshData, delay);
+            } else {
+                setStatusInfo(prev => ({ ...prev, error: `Err: ${error.message.substring(0, 20)}` }));
+                if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
+                dataTimerRef.current = setTimeout(refreshData, 60000);
+            }
+        }
         setLoading(false);
     };
 
     useEffect(() => {
         refreshData();
-        dataTimerRef.current = setInterval(refreshData, 60000);
-        return () => { if (dataTimerRef.current) clearInterval(dataTimerRef.current); };
+        return () => { if (dataTimerRef.current) clearTimeout(dataTimerRef.current); };
     }, []);
 
     useInput((input, key) => {
         if (dialog) return; // 弹窗时由 DetailDialog 处理
         if (input === "q") { exit(); process.exit(0); }
-        if (key.tab) setFocusIdx(f => (f + 1) % PANELS.length);
+        if (key.tab) {
+            if (key.shift) setFocusIdx(f => (f - 1 + PANELS.length) % PANELS.length);
+            else setFocusIdx(f => (f + 1) % PANELS.length);
+        }
     });
 
     const openDetail = (type, idx) => {
         const item = caches[type]?.[idx];
         if (!item) return;
-        const labels = { article: t("TYPE_ARTICLE"), breaking: t("TYPE_NEWS"), onchain: t("TYPE_ONCHAIN"), report: t("TYPE_REPORT"), signals: t("COL_SIGNALS") };
+        const labels = {
+            article: t("TYPE_ARTICLE"), breaking: t("TYPE_NEWS"), onchain: t("TYPE_ONCHAIN"), report: t("TYPE_REPORT"),
+            breakout: t("LABEL_BREAKOUT"), exhaustion: t("LABEL_EXHAUSTION"), goldenPit: t("LABEL_GOLDEN_PIT"), liquidation: t("LABEL_LIQUIDATION"),
+            marketToday: t("LABEL_MARKET_TODAY"), tokenUnlock: t("LABEL_TOKEN_UNLOCK")
+        };
         setDialog({ data: item, category: labels[type] });
     };
 
@@ -341,49 +503,60 @@ const Dashboard = () => {
     const newsTypes = ["article", "breaking", "onchain", "report"];
     const newsLabels = { article: t("TYPE_ARTICLE"), breaking: t("TYPE_NEWS"), onchain: t("TYPE_ONCHAIN"), report: t("TYPE_REPORT") };
 
-    // 根据终端高度计算每个新闻面板的可见条目数（终端行数 - 状态栏3行 - 边框约8行，再除以4个面板）
-    const termRows = process.stdout.rows || 40;
-    const newsPanelVisible = Math.max(2, Math.floor((termRows - 5) / 4) - 3);
-    const signalPanelVisible = Math.max(4, termRows - 7);
+    const signalTypes = ["breakout", "exhaustion", "goldenPit", "liquidation"];
+    const signalLabels = { breakout: t("LABEL_BREAKOUT"), exhaustion: t("LABEL_EXHAUSTION"), goldenPit: t("LABEL_GOLDEN_PIT"), liquidation: t("LABEL_LIQUIDATION") };
 
-    // 弹窗打开时替换主界面
-    if (dialog) {
-        return h(DetailDialog, { data: dialog.data, category: dialog.category, onClose: () => setDialog(null) });
-    }
+    const infoTypes = ["marketToday", "tokenUnlock"];
+    const infoLabels = { marketToday: t("LABEL_MARKET_TODAY"), tokenUnlock: t("LABEL_TOKEN_UNLOCK") };
+
+    const termRows = process.stdout.rows || 40;
+    // Calculate visible rows for panels (Available height / panels per column)
+    const panelVisible = Math.max(2, Math.floor((termRows - 6) / 4) - 2);
+    const infoPanelVisible = Math.max(2, Math.floor((termRows - 10) / 2) - 2);
+
+    if (dialog) return h(DetailDialog, { data: dialog.data, category: dialog.category, onClose: () => setDialog(null) });
 
     return h(Box, { flexDirection: "column", height: termRows },
-        // 主三列布局
         h(Box, { flexGrow: 1, flexDirection: "row" },
-            // 左列：四个新闻面板
+            // Left: News (4)
             h(Box, { flexDirection: "column", width: "33%" },
                 ...newsTypes.map((type, i) =>
                     h(PanelList, {
                         key: type, label: newsLabels[type], items: caches[type],
                         focused: focusIdx === i, onSelect: (idx) => openDetail(type, idx),
-                        maxVisible: newsPanelVisible
+                        maxVisible: panelVisible
                     })
                 )
             ),
-            // 中列：信号面板
+            // Middle: Signals (4)
             h(Box, { flexDirection: "column", width: "34%" },
-                h(PanelList, {
-                    label: t("COL_SIGNALS"), items: caches.signals,
-                    focused: focusIdx === 4, onSelect: (idx) => openDetail("signals", idx),
-                    maxVisible: signalPanelVisible
-                })
+                ...signalTypes.map((type, i) =>
+                    h(PanelList, {
+                        key: type, label: signalLabels[type], items: caches[type],
+                        focused: focusIdx === i + 4, onSelect: (idx) => openDetail(type, idx),
+                        maxVisible: panelVisible
+                    })
+                )
             ),
-            // 右列：时钟
+            // Right: Info (3)
             h(Box, { flexDirection: "column", width: "33%" },
-                h(ClockPanel, { focused: focusIdx === 5 })
+                h(ClockPanel, { focused: focusIdx === 8 }),
+                ...infoTypes.map((type, i) =>
+                    h(PanelList, {
+                        key: type, label: infoLabels[type], items: caches[type],
+                        focused: focusIdx === i + 9, onSelect: (idx) => openDetail(type, idx),
+                        maxVisible: infoPanelVisible
+                    })
+                )
             )
         ),
-        // 渐变色状态栏
         h(Box, { borderStyle: "single", borderColor: "red", height: 3, paddingX: 1 },
             ...gradientText("MethodAlgo TUI", [255, 60, 60], [255, 255, 255]),
             h(Text, { color: "gray" }, " | "),
             h(Text, { color: "white" }, "Status: "),
             h(Spinner, { color: "green" }),
             h(Text, { color: "green" }, " Running"),
+            statusInfo.error ? h(Text, { color: "red", bold: true }, ` [${statusInfo.error}]`) : null,
             h(Text, { color: "gray" }, " | "),
             h(Text, { color: "white" }, statusInfo.time),
             h(Text, { color: "gray" }, " | "),

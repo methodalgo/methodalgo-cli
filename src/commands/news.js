@@ -44,8 +44,9 @@ const newsCmd = new Command("news")
                 const lang = t("FETCH_SUCCESS").includes("获取") ? "zh" : "en";
                 logger.success(t("FETCH_SUCCESS", { count: data.length }));
                 data.forEach((item, index) => {
-                    const title = item.title[lang] || item.title["en"];
-                    const source = new URL(item.url).hostname.replace("www.", "");
+                    const title = (item.title[lang] || item.title["en"]).replace(/\n/g, ", ");
+                    let source = "MethodAlgo";
+                    try { if (item.url) source = new URL(item.url).hostname.replace("www.", ""); } catch (_) {}
                     const date = new Date(item.publish_date).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
                         hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
                     }).replace(/\//g, "-");
@@ -57,6 +58,12 @@ const newsCmd = new Command("news")
                     }
                     if (item.url) {
                         console.log(`    ${chalk.blue.underline(item.url)}`);
+                    }
+                    if (item.image_url) {
+                        console.log(`    ${chalk.yellow("🖼  Image: ")}${chalk.dim.underline(item.image_url)}`);
+                    }
+                    if (item.video_url) {
+                        console.log(`    ${chalk.yellow("📹 Video: ")}${chalk.dim.underline(item.video_url)}`);
                     }
                 });
                 console.log(""); // 底部留白

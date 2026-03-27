@@ -63,6 +63,8 @@ npm link        # Link local command
 #### 🖥️ Market Dashboard (`dashboard`)
 Launch a real-time TUI (Terminal User Interface) dashboard for a global view of market insights, news, and signals.
 
+![Dashboard Preview](./screenshot/dashboard.png)
+
 *   **Usage**: `methodalgo dashboard` (Alias: `top`)
 *   **Controls**: Use `TAB` to switch panels, `UP/DOWN` to scroll, and `ENTER` to view details.
 
@@ -191,6 +193,8 @@ npm link        # 链接本地指令
 
 #### 🖥️ 市场看板 (`dashboard`)
 启动实时 TUI（终端用户界面）仪表盘，全局俯瞰市场洞察、新闻与信号。
+
+![Dashboard Preview](./screenshot/dashboard.png)
 
 *   **用法**: `methodalgo dashboard` (别名: `top`)
 *   **操作**: 使用 `TAB` 切换面板，`UP/DOWN` 滚动列表，`ENTER` 弹出详情。
