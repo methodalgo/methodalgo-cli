@@ -239,9 +239,18 @@ const Dashboard = () => {
     const [statusInfo, setStatusInfo] = useState({ time: "", mem: "0", error: null });
     const dataTimerRef = useRef(null);
     const lastFetchRef = useRef(null); // 记录上次拉取时间，用于增量请求
+    const isFetchingRef = useRef(false);  // 防止并发重入
+    const refreshRef = useRef(null);      // 始终持有最新 refreshData 引用
     const lang = getLang();
 
+    const scheduleRefresh = (delay = 60000) => {
+        if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
+        dataTimerRef.current = setTimeout(() => refreshRef.current?.(), delay);
+    };
+
     const refreshData = async () => {
+        if (isFetchingRef.current) return; // 防止并发
+        isFetchingRef.current = true;
         const memUsage = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
         try {
             const newsTypes = ["article", "breaking", "onchain", "report"];
@@ -262,7 +271,7 @@ const Dashboard = () => {
                 (r.status === "fulfilled" && r.value.data.status === false &&
                     (r.value.data.msg?.includes("auth") || r.value.data.msg?.includes("key")))
             );
-            if (authFailed) { setAuthError(true); setLoading(false); if (dataTimerRef.current) clearInterval(dataTimerRef.current); return; }
+            if (authFailed) { setAuthError(true); setLoading(false); if (dataTimerRef.current) clearTimeout(dataTimerRef.current); return; }
 
             lastFetchRef.current = new Date().toISOString();
 
@@ -294,7 +303,8 @@ const Dashboard = () => {
                     return (res?.status === "fulfilled" && res.value.data.status) ? res.value.data.data : [];
                 };
 
-                const formatSig = (item, overrideDir, type) => {
+                const formatSig = (rawItem, overrideDir, type) => {
+                    const item = { ...rawItem }; // 浅拷贝，避免直接修改原始数据
                     const sig = item.signals?.[0];
                     let breakPrice = sig?.details?.BreakPrice || sig?.breakPrice || sig?.break_price || item.breakPrice || item.break_price;
                     if (!breakPrice && sig?.fields) {
@@ -363,7 +373,8 @@ const Dashboard = () => {
                 };
 
                 const mergeAndSort = (items, existing, overrideDir, type, preferNew = false) => {
-                    const combined = preferNew ? [...items, ...existing] : [...items.filter(i => !new Set(existing.map(e => e.id)).has(i.id)), ...existing];
+                    const existingIds = new Set(existing.map(e => e.id)); // 提前构建 Set，避免 O(n²)
+                    const combined = preferNew ? [...items, ...existing] : [...items.filter(i => !existingIds.has(i.id)), ...existing];
                     const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
                     return unique.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 50).map(i => formatSig(i, overrideDir, type));
                 };
@@ -445,8 +456,7 @@ const Dashboard = () => {
                 return next;
             });
             setStatusInfo({ time: new Date().toLocaleTimeString(), mem: memUsage, error: null });
-            if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
-            dataTimerRef.current = setTimeout(refreshData, 60000);
+            scheduleRefresh(60000);
         } catch (error) {
             if (error.status === 429) {
                 const secMatch = error.message.match(/(\d+)\s+seconds/);
@@ -455,21 +465,22 @@ const Dashboard = () => {
                 if (secMatch) delay = parseInt(secMatch[1]) * 1000 + 2000;
                 else if (minMatch) delay = parseInt(minMatch[1]) * 60000 + 2000;
                 setStatusInfo(prev => ({ ...prev, error: `Rate Limited (Retry in ${Math.round(delay / 1000)}s)` }));
-                if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
-                dataTimerRef.current = setTimeout(refreshData, delay);
+                scheduleRefresh(delay);
             } else {
                 setStatusInfo(prev => ({ ...prev, error: `Err: ${error.message.substring(0, 20)}` }));
-                if (dataTimerRef.current) clearTimeout(dataTimerRef.current);
-                dataTimerRef.current = setTimeout(refreshData, 60000);
+                scheduleRefresh(60000);
             }
+        } finally {
+            isFetchingRef.current = false;
+            setLoading(false); // 确保任何路径退出都会重置 loading
         }
-        setLoading(false);
     };
+    refreshRef.current = refreshData; // 每次渲染后同步最新引用
 
     useEffect(() => {
-        refreshData();
+        refreshRef.current(); // 挂载时首次拉取（ref 已在渲染体 L476 同步）
         return () => { if (dataTimerRef.current) clearTimeout(dataTimerRef.current); };
-    }, []);
+    }, []); // 仅挂载执行一次，后续刷新由 scheduleRefresh + refreshRef 统一管理
 
     useInput((input, key) => {
         if (dialog) return; // 弹窗时由 DetailDialog 处理
