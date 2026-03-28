@@ -1,7 +1,8 @@
 import { program } from "commander";
 import chalk from "chalk";
 import { readFileSync } from "fs";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 import configCmd from "./commands/config.js";
 import snapshotCmd from "./commands/snapshot.js";
 import newsCmd from "./commands/news.js";
@@ -13,7 +14,9 @@ import config from "./utils/config-manager.js";
 import { startOnboarding } from "./utils/onboard.js";
 import { t } from "./utils/i18n.js";
 
-const pkgPath = resolve(process.cwd(), "package.json");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const pkgPath = resolve(__dirname, "../package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 
 import { BANNER as finalBanner } from "./utils/constants.js";

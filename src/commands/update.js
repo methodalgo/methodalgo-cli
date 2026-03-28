@@ -1,7 +1,8 @@
 import { Command } from "commander";
 import { exec } from "child_process";
 import { existsSync } from "fs";
-import { join } from "path";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
 import chalk from "chalk";
 import { t } from "../utils/i18n.js";
 import logger from "../utils/logger.js";
@@ -10,7 +11,12 @@ async function detectInstallMethod() {
     const execPath = process.execPath;
     const isSea = process.getBuiltinModule && process.getBuiltinModule("node:sea");
     if (execPath.includes("methodalgo") && !execPath.includes("node_modules")) return "binary";
-    const gitDir = join(process.cwd(), ".git");
+    
+    // 获取当前脚本所在目录的根路径 (假设在 src/commands/)
+    const __filename = fileURLToPath(import.meta.url);
+    const rootDir = join(dirname(__filename), "../../");
+    const gitDir = join(rootDir, ".git");
+    
     if (existsSync(gitDir) && !process.argv[1].includes("node_modules")) return "git";
     return "npm";
 }
