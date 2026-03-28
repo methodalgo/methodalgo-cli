@@ -4,6 +4,7 @@ import { render, Box, Text, useInput, useApp } from "ink";
 import chalk from "chalk";
 import { signedRequest } from "../utils/api.js";
 import { t, getLang } from "../utils/i18n.js";
+import { BANNER } from "../utils/constants.js";
 
 const h = React.createElement;
 
@@ -34,7 +35,12 @@ const Spinner = ({ color = "red" }) => {
 // ── 通用工具 ────────────────────────────────────────────────
 const cleanText = (text) => {
     if (!text) return "";
-    return text.toString().replace(/[\r\n]+/g, " ").replace(/[\uD83C\uD83D\uD83E][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "").trim();
+    return text.toString()
+        .replace(/[\r\n\t]+/g, " ") // 合并空白线和制表符
+        .replace(/[\uD83C\uD83D\uD83E][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "") // 移除 Emoji
+        .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // 移除控制字符
+        .replace(/\s+/g, " ") // 合并连续空格
+        .trim();
 };
 
 const formatTime = (iso) => {
@@ -57,14 +63,16 @@ const ClockPanel = ({ focused }) => {
     }, []);
     const opts = { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false };
     const bc = focused ? "red" : "white";
-    return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, flexGrow: 0, height: 4, paddingX: 1, overflow: "hidden" },
+    const local = now.toLocaleTimeString("zh-CN", opts);
+    const lse = now.toLocaleTimeString("en-GB", { ...opts, timeZone: "Europe/London" });
+    const nyse = now.toLocaleTimeString("en-US", { ...opts, timeZone: "America/New_York" });
+    
+    return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, width: "100%", height: 4, paddingX: 1, overflow: "hidden" },
         h(Box, { flexDirection: "row" },
             h(Text, { bold: true, color: "yellow" }, " 🕒 Market clock")
         ),
-        h(Box, { flexDirection: "row", justifyContent: "space-between" },
-            h(Text, null, `${now.toLocaleTimeString("zh-CN", opts)} (LOCAL)  `),
-            h(Text, null, `${now.toLocaleTimeString("en-GB", { ...opts, timeZone: "Europe/London" })} (LSE)  `),
-            h(Text, null, `${now.toLocaleTimeString("en-US", { ...opts, timeZone: "America/New_York" })} (NYSE) `)
+        h(Box, { width: "100%", overflow: "hidden" },
+            h(Text, { wrap: "truncate" }, `${local} (L)  ${lse} (E)  ${nyse} (N)`)
         )
     );
 };
@@ -99,28 +107,35 @@ const PanelList = ({ label, items, focused, onSelect, maxVisible = 6 }) => {
         setScrollTop(st => Math.min(st, Math.max(0, items.length - maxVisible)));
     }, [items.length]);
 
-    const visibleItems = items.slice(scrollTop, scrollTop + maxVisible);
-    const hasMore = items.length > scrollTop + maxVisible;
+    const actualItems = Array.isArray(items) ? items : [];
+    const visibleItems = actualItems.slice(scrollTop, scrollTop + maxVisible);
+    const hasMore = actualItems.length > scrollTop + maxVisible;
     const hasLess = scrollTop > 0;
 
-    const countLabel = items.length > 0 ? ` (${items.length})` : "";
+    const countLabel = actualItems.length > 0 ? ` (${actualItems.length})` : "";
     const scrollHint = hasLess && hasMore ? " ↕" : hasLess ? " ↑" : hasMore ? " ↓" : "";
-    return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, flexGrow: 1, overflow: "hidden" },
+    return h(Box, { flexDirection: "column", borderStyle: "single", borderColor: bc, flexGrow: 1, overflow: "hidden", width: "100%" },
         h(Text, { bold: true, color: "red", wrap: "truncate" }, ` ${label}${countLabel}${scrollHint}`),
-        items.length === 0
+        actualItems.length === 0
             ? h(Box, { flexGrow: 1, alignItems: "center", justifyContent: "center" }, 
                 ...gradientText("Loading...", [255, 60, 60], [255, 255, 255]))
             : visibleItems.map((item, vi) => {
+                if (!item) return null;
                 const realIdx = scrollTop + vi;
                 const isFocused = realIdx === selectedIdx && focused;
                 const sig = item.signals?.[0] || {};
-                let textColor = (sig.direction === "bear") ? "red" : (sig.direction === "bull" ? "green" : "white");
-                return h(Text, {
-                    key: realIdx,
-                    backgroundColor: isFocused ? "red" : undefined,
-                    color: isFocused ? "white" : textColor,
-                    wrap: "truncate"
-                }, ` [${formatTime(item.publish_date || item.timestamp)}] ${cleanText(sig.title || item.displayTitle || "")}`);
+                const title = cleanText(item.displayTitle || sig.title || "");
+                if (!title) return null; // 如果没有任何可显示标题，则不渲染这一行
+                
+                const itemDirection = item.direction || sig.direction || "";
+                let textColor = (itemDirection === "bear") ? "red" : "white";
+                return h(Box, { key: realIdx, width: "100%", overflow: "hidden" },
+                    h(Text, {
+                        backgroundColor: isFocused ? "red" : undefined,
+                        color: isFocused ? "white" : textColor,
+                        wrap: "truncate-end"
+                    }, ` [${formatTime(item.publish_date || item.timestamp)}] ${title}`)
+                );
             })
     );
 };
@@ -192,6 +207,7 @@ const DetailDialog = ({ data, category, onClose }) => {
 // ── Loading 屏幕 ───────────────────────────────
 const LoadingScreen = () => (
     h(Box, { flexDirection: "column", alignItems: "center", justifyContent: "center", height: "100%" },
+        h(Box, { marginBottom: 1 }, h(Text, null, BANNER)),
         h(Spinner, { color: "red" }),
         h(Box, { gap: 1, marginTop: 1 },
             ...gradientText("MethodAlgo Market Intelligence Dashboard...", [255, 60, 60], [255, 255, 255])
@@ -234,16 +250,35 @@ const Dashboard = () => {
                 newsTypes.forEach((type, i) => {
                     const res = results[i];
                     if (res.status === "fulfilled" && res.value.data.status) {
-                        next[type] = res.value.data.data.map(item => ({
-                            ...item,
-                            displayTitle: item.title[lang] || item.title.en || item.title
-                        }));
+                        next[type] = res.value.data.data
+                            .filter(item => item && (item.title || item.displayTitle)) // 初步过滤空项
+                            .map(item => ({
+                                ...item,
+                                displayTitle: typeof item.title === "object" ? (item.title[lang] || item.title.en || "") : (item.title || "")
+                            }))
+                            .filter(item => item.displayTitle.trim().length > 0); // 彻底过滤无标题项
                     }
                 });
 
                 // Signals processing (后端已智能拆分和标记方向)
                 const sigOffset = newsTypes.length;
-                const getSig = (idx) => (results[sigOffset + idx]?.status === "fulfilled" && results[sigOffset + idx].value.data.status) ? results[sigOffset + idx].value.data.data : [];
+                const getSig = (idx) => {
+                    const res = results[sigOffset + idx];
+                    if (res?.status === "fulfilled" && res.value.data.status) {
+                        const d = res.value.data.data;
+                        if (Array.isArray(d)) return d.filter(item => item && (item.signals || item.displayTitle || item.title));
+                        
+                        if (d && Array.isArray(d.signals)) {
+                            return d.signals.map((s, i) => ({
+                                id: `compat-${idx}-${i}`,
+                                timestamp: d.updatedAt || new Date().toISOString(),
+                                signals: [s]
+                            }));
+                        }
+                        return (d && Object.keys(d).length > 0) ? [d] : [];
+                    }
+                    return [];
+                };
 
                 next.breakout = getSig(0);
                 next.exhaustion = [...getSig(1), ...getSig(2)];
@@ -251,6 +286,60 @@ const Dashboard = () => {
                 next.liquidation = getSig(5);
                 next.marketToday = getSig(6);
                 next.tokenUnlock = getSig(7);
+
+                // 最终过滤与格式化重组
+                for (const k in next) {
+                    if (Array.isArray(next[k])) {
+                        next[k] = next[k].map(item => {
+                            if (!item) return null;
+                            const sig = item.signals?.[0] || {};
+                            const details = sig.details || {};
+                            let newTitle = cleanText(sig.title || item.displayTitle || "");
+                            let direction = sig.direction || item.direction || "";
+
+                            // 尝试从标题中提取 symbol (如果 details 中没有)
+                            let symbol = cleanText(details.Symbol || details.symbol || "");
+                            if (!symbol) {
+                                const match = newTitle.match(/For\s+([\w.*-]+)/i);
+                                if (match) symbol = match[1];
+                            }
+                            
+                            const side = (details.Side || details.side || "").toLowerCase();
+
+                            if (k === "breakout") {
+                                // 突破信号判定: 优先看 side，再看预计算的 direction
+                                const isDown = side.includes("down") || direction === "bear";
+                                const isUp = side.includes("up") || direction === "bull";
+                                const dirStr = isUp ? "UP" : isDown ? "DOWN" : "";
+                                if (dirStr && symbol) newTitle = `Breakout ${dirStr} For ${symbol}`;
+                            } else if (k === "goldenPit") {
+                                const dirStr = direction === "bull" ? "Bull" : direction === "bear" ? "Bear" : "";
+                                if (dirStr && symbol) newTitle = `${dirStr} Golden Pit For ${symbol}`;
+                            } else if (k === "liquidation") {
+                                // 强平特殊规则: 多单强平(Sell/Bear)为红色, 空单强平(Buy/Bull)为白色
+                                const isLong = side.includes("sell") || direction === "bear";
+                                const isShort = side.includes("buy") || direction === "bull";
+                                if (isLong) {
+                                    newTitle = `LONG Liquidation For ${symbol || "Unknown"}`;
+                                    direction = "bear";
+                                } else if (isShort) {
+                                    newTitle = `SHORT Liquidation For ${symbol || "Unknown"}`;
+                                    direction = "bull";
+                                }
+                            }
+
+                            return {
+                                ...item,
+                                direction, 
+                                displayTitle: newTitle
+                            };
+                        }).filter(item => {
+                            if (!item) return false;
+                            const title = cleanText(item.displayTitle || "");
+                            return title.length > 0;
+                        });
+                    }
+                }
 
                 return next;
             });
@@ -290,20 +379,29 @@ const Dashboard = () => {
     if (dialog) return h(DetailDialog, { ...dialog, onClose: () => setDialog(null) });
 
     const termRows = process.stdout.rows || 40;
-    const panelVisible = Math.max(2, Math.floor((termRows - 8) / 4));
+    const termCols = process.stdout.columns || 120;
+    const availableRows = Math.max(10, termRows - 3); // 减去底部状态栏
+    const colWidth = Math.floor(termCols / 3);
 
-    return h(Box, { flexDirection: "column", height: termRows },
-        h(Box, { flexGrow: 1 },
-            h(Box, { flexDirection: "column", width: "33%" },
-                ["article", "breaking", "onchain", "report"].map((t, i) => h(PanelList, { key: t, label: t === "article" ? t("TYPE_ARTICLE") : t === "breaking" ? t("TYPE_NEWS") : t === "onchain" ? t("TYPE_ONCHAIN") : t("TYPE_REPORT"), items: caches[t], focused: focusIdx === i, onSelect: (idx) => openDetail(t, idx), maxVisible: panelVisible }))
+    // 计算不同列的渲染数量（扣除面板边框 2 行 + 标题 1 行 = 3 行）
+    const col12MaxVisible = Math.max(1, Math.floor(availableRows / 4) - 3);
+    const col3MaxVisible = Math.max(1, Math.floor((availableRows - 4) / 2) - 3);
+
+    return h(Box, { flexDirection: "column", height: termRows, width: "100%", overflow: "hidden" },
+        h(Box, { flexGrow: 1, width: "100%", overflow: "hidden" },
+            // Column 1
+            h(Box, { flexDirection: "column", width: colWidth, flexShrink: 0, overflow: "hidden" },
+                ["article", "breaking", "onchain", "report"].map((type, i) => h(PanelList, { key: type, label: type === "article" ? t("TYPE_ARTICLE") : type === "breaking" ? t("TYPE_NEWS") : type === "onchain" ? t("TYPE_ONCHAIN") : t("TYPE_REPORT"), items: caches[type], focused: focusIdx === i, onSelect: (idx) => openDetail(type, idx), maxVisible: col12MaxVisible }))
             ),
-            h(Box, { flexDirection: "column", width: "34%" },
-                ["breakout", "exhaustion", "goldenPit", "liquidation"].map((t, i) => h(PanelList, { key: t, label: t === "breakout" ? t("LABEL_BREAKOUT") : t === "exhaustion" ? t("LABEL_EXHAUSTION") : t === "goldenPit" ? t("LABEL_GOLDEN_PIT") : t("LABEL_LIQUIDATION"), items: caches[t], focused: focusIdx === i + 4, onSelect: (idx) => openDetail(t, idx), maxVisible: panelVisible }))
+            // Column 2
+            h(Box, { flexDirection: "column", width: colWidth, flexShrink: 0, overflow: "hidden" },
+                ["breakout", "exhaustion", "goldenPit", "liquidation"].map((type, i) => h(PanelList, { key: type, label: type === "breakout" ? t("LABEL_BREAKOUT") : type === "exhaustion" ? t("LABEL_EXHAUSTION") : type === "goldenPit" ? t("LABEL_GOLDEN_PIT") : t("LABEL_LIQUIDATION"), items: caches[type], focused: focusIdx === i + 4, onSelect: (idx) => openDetail(type, idx), maxVisible: col12MaxVisible }))
             ),
-            h(Box, { flexDirection: "column", width: "33%" },
+            // Column 3
+            h(Box, { flexDirection: "column", flexGrow: 1, flexShrink: 1, minWidth: 0, overflow: "hidden" },
                 h(ClockPanel, { focused: focusIdx === 8 }),
-                h(PanelList, { label: t("LABEL_MARKET_TODAY"), items: caches.marketToday, focused: focusIdx === 9, onSelect: (idx) => openDetail("marketToday", idx), maxVisible: panelVisible }),
-                h(PanelList, { label: t("LABEL_TOKEN_UNLOCK"), items: caches.tokenUnlock, focused: focusIdx === 10, onSelect: (idx) => openDetail("tokenUnlock", idx), maxVisible: panelVisible })
+                h(PanelList, { label: t("LABEL_MARKET_TODAY"), items: caches.marketToday, focused: focusIdx === 9, onSelect: (idx) => openDetail("marketToday", idx), maxVisible: col3MaxVisible }),
+                h(PanelList, { label: t("LABEL_TOKEN_UNLOCK"), items: caches.tokenUnlock, focused: focusIdx === 10, onSelect: (idx) => openDetail("tokenUnlock", idx), maxVisible: col3MaxVisible })
             )
         ),
         h(Box, { borderStyle: "single", borderColor: "red", height: 3, paddingX: 1, alignItems: "center" },

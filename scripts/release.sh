@@ -4,18 +4,21 @@
 VERSION=$1
 
 if [ -z "$VERSION" ]; then
-  echo "❌ 错误: 请指定版本号 (例如: npm run release 1.0.1)"
-  exit 1
+  echo "⚠️ 未指定版本号，将自动增加 Patch 版本..."
+  # npm version patch 会返回带 v 的版本号，如 v1.0.4
+  FULL_VERSION=$(npm version patch --no-git-tag-version)
+  CLEAN_VERSION=${FULL_VERSION#v}
+else
+  # 确保版本号不带 v 前缀
+  CLEAN_VERSION=${VERSION#v}
+  # 更新 package.json 版本 (不自动打 git tag，由脚本统一处理)
+  npm version $CLEAN_VERSION --no-git-tag-version
 fi
 
-# 确保版本号不带 v 前缀（脚本会自动加）
-CLEAN_VERSION=${VERSION#v}
+echo "📦 准备发布版本: v$CLEAN_VERSION"
 
 # 1. 运行 lint 或测试 (可选，确保发布质量)
 # npm run lint
-
-# 2. 更新 package.json 版本 (不自动打 git tag，由脚本统一处理)
-npm version $CLEAN_VERSION --no-git-tag-version
 
 # 3. Git 提交
 git add .

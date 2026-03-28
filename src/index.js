@@ -16,18 +16,7 @@ import { t } from "./utils/i18n.js";
 const pkgPath = resolve(process.cwd(), "package.json");
 const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
 
-// 极简版: 仅保留用户指定的蓝色块状 ASCII 字
-const title = chalk.blueBright.bold;
-const finalBanner = `
-${chalk.red.bold("▄▄▄      ▄▄▄             ▄▄             ▄▄   ▄▄▄▄   ▄▄             ")}
-${chalk.red.bold("████▄  ▄████        ██   ██             ██ ▄██▀▀██▄ ██             ")}
-${chalk.red.bold("███▀████▀███ ▄█▀█▄ ▀██▀▀ ████▄ ▄███▄ ▄████ ███  ███ ██ ▄████ ▄███▄ ")}
-${chalk.red.bold("███  ▀▀  ███ ██▄█▀  ██   ██ ██ ██ ██ ██ ██ ███▀▀███ ██ ██ ██ ██ ██ ")}
-${chalk.white.bold("███      ███ ▀█▄▄▄  ██   ██ ██ ▀███▀ ▀████ ███  ███ ██ ▀████ ▀███▀ ")}
-${chalk.white.bold("                                                          ██       ")}
-${chalk.white.bold("                                                        ▀▀▀        ")}
-  ${chalk.dim("Cli | v" + pkg.version)}
-`;
+import { BANNER as finalBanner } from "./utils/constants.js";
 
 program
     .name("methodalgo")
