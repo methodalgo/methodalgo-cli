@@ -2,10 +2,11 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import chalk from "chalk";
 import { getLang } from "../../utils/i18n.js";
+import { formatTime } from "../../utils/dashboard-utils.js";
 
 const h = React.createElement;
 
-export const DetailDialog = ({ data, category, onClose }) => {
+export const DetailDialog = ({ data, category, type, onClose }) => {
     const [scrollOffset, setScrollOffset] = useState(0);
     const termRows = process.stdout.rows || 40;
     const termCols = process.stdout.columns || 80;
@@ -16,15 +17,27 @@ export const DetailDialog = ({ data, category, onClose }) => {
     
     if (data.analysis) lines.push(chalk.yellow(`Analysis: ${data.analysis}`));
     
-    if (sig.details && Object.keys(sig.details).length > 0) {
+    const addLine = (k, v) => v && lines.push(`${chalk.cyan(k.padEnd(16))}: ${chalk.white(v)}`);
+
+    if (type === "tokenUnlock") {
+        addLine("Market Cap", data.marketCap);
+        addLine("Progress", data.progress);
+        addLine("Countdown", data.countDown || data.unlockTime || data.nextUnlock);
+        addLine("Quantity", data.unlockValue || data.unlockTokenVal || data.unlockQuantity);
+        addLine("Percentage", data.perc ? `${data.perc}%` : null);
+    } else if (sig.details && Object.keys(sig.details).length > 0) {
         Object.entries(sig.details).forEach(([k, v]) => {
             if (!v) return;
             lines.push(`${chalk.cyan(k.padEnd(16))}: ${chalk.white(v)}`);
         });
     }
 
+    // ── Image URL ──────────────────────
+    const imgUrl = data.imageUrl || data.fileUrl || data.image_url;
+    if (imgUrl) addLine("Image URL", imgUrl);
+
     const lang = getLang();
-    const description = (sig.description || data.description?.[lang] || data.description?.en || data.description || "");
+    const description = (sig.description || data.description?.[lang] || data.description?.en || data.description || data.content || "");
     if (description) lines.push(...description.toString().split("\n").map(l => l.trim()));
 
     const HEADER = 8;
@@ -49,7 +62,7 @@ export const DetailDialog = ({ data, category, onClose }) => {
         h(Text, { color: "yellow", bold: true, wrap: "wrap" }, title),
         h(Box, { height: 1 }),
         h(Box, { gap: 2 },
-            h(Text, null, h(Text, { color: "gray" }, "Time: "), h(Text, { color: "cyan" }, (data.publish_date || data.timestamp || "N/A"))),
+            h(Text, null, h(Text, { color: "gray" }, "Time: "), h(Text, { color: "cyan" }, formatTime(data.publish_date || data.timestamp || "N/A"))),
         ),
         data.url ? h(Text, { color: "gray", dimColor: true, wrap: "truncate" }, `URL: ${data.url}`) : null,
         

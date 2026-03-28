@@ -55,7 +55,7 @@ const Dashboard = () => {
             breakout: t("LABEL_BREAKOUT"), exhaustion: t("LABEL_EXHAUSTION"), goldenPit: t("LABEL_GOLDEN_PIT"), liquidation: t("LABEL_LIQUIDATION"),
             marketToday: t("LABEL_MARKET_TODAY"), tokenUnlock: t("LABEL_TOKEN_UNLOCK")
         };
-        setDialog({ data: item, category: labels[type] });
+        setDialog({ data: item, category: labels[type], type: type });
     };
 
     if (loading) return h(LoadingScreen);
