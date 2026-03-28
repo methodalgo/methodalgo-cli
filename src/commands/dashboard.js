@@ -80,16 +80,16 @@ const Dashboard = () => {
             ),
             // Column 2: Signals
             h(Box, { flexDirection: "column", width: colWidth, flexShrink: 0, overflow: "hidden" },
-                h(PanelList, { label: t("LABEL_BREAKOUT"), items: caches.breakout, focused: focusIdx === 4, onSelect: i => openDetail("breakout", i), maxVisible: col12MaxVisible }),
-                h(PanelList, { label: t("LABEL_EXHAUSTION"), items: caches.exhaustion, focused: focusIdx === 5, onSelect: i => openDetail("exhaustion", i), maxVisible: col12MaxVisible }),
-                h(PanelList, { label: t("LABEL_GOLDEN_PIT"), items: caches.goldenPit, focused: focusIdx === 6, onSelect: i => openDetail("goldenPit", i), maxVisible: col12MaxVisible }),
-                h(PanelList, { label: t("LABEL_LIQUIDATION"), items: caches.liquidation, focused: focusIdx === 7, onSelect: i => openDetail("liquidation", i), maxVisible: col12MaxVisible })
+                h(PanelList, { category: "breakout", label: t("LABEL_BREAKOUT"), items: caches.breakout, focused: focusIdx === 4, onSelect: i => openDetail("breakout", i), maxVisible: col12MaxVisible }),
+                h(PanelList, { category: "exhaustion", label: t("LABEL_EXHAUSTION"), items: caches.exhaustion, focused: focusIdx === 5, onSelect: i => openDetail("exhaustion", i), maxVisible: col12MaxVisible }),
+                h(PanelList, { category: "goldenPit", label: t("LABEL_GOLDEN_PIT"), items: caches.goldenPit, focused: focusIdx === 6, onSelect: i => openDetail("goldenPit", i), maxVisible: col12MaxVisible }),
+                h(PanelList, { category: "liquidation", label: t("LABEL_LIQUIDATION"), items: caches.liquidation, focused: focusIdx === 7, onSelect: i => openDetail("liquidation", i), maxVisible: col12MaxVisible })
             ),
             // Column 3: Misc
             h(Box, { flexDirection: "column", flexGrow: 1, flexShrink: 1, minWidth: 0, overflow: "hidden" },
                 h(ClockPanel, { focused: focusIdx === 8 }),
-                h(PanelList, { label: t("LABEL_MARKET_TODAY"), items: caches.marketToday, focused: focusIdx === 9, onSelect: i => openDetail("marketToday", i), maxVisible: col3MaxVisible }),
-                h(PanelList, { label: t("LABEL_TOKEN_UNLOCK"), items: caches.tokenUnlock, focused: focusIdx === 10, onSelect: i => openDetail("tokenUnlock", i), maxVisible: col3MaxVisible })
+                h(PanelList, { category: "marketToday", label: t("LABEL_MARKET_TODAY"), items: caches.marketToday, focused: focusIdx === 9, onSelect: i => openDetail("marketToday", i), maxVisible: col3MaxVisible }),
+                h(PanelList, { category: "tokenUnlock", label: t("LABEL_TOKEN_UNLOCK"), items: caches.tokenUnlock, focused: focusIdx === 10, onSelect: i => openDetail("tokenUnlock", i), maxVisible: col3MaxVisible })
             )
         ),
         h(StatusLine, { statusInfo })

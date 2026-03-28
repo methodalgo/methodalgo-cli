@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Box, Text, useInput } from "ink";
-import { gradientText, cleanText, formatTime } from "../../utils/dashboard-utils.js";
+import { gradientText, cleanText, formatTime, getSignalColor } from "../../utils/dashboard-utils.js";
 
 const h = React.createElement;
 
-export const PanelList = ({ label, items, focused, onSelect, maxVisible = 6 }) => {
+export const PanelList = ({ category, label, items, focused, onSelect, maxVisible = 6 }) => {
     const [selectedIdx, setSelectedIdx] = useState(0);
     const [scrollTop, setScrollTop] = useState(0);
     const bc = focused ? "red" : "white";
@@ -20,7 +20,8 @@ export const PanelList = ({ label, items, focused, onSelect, maxVisible = 6 }) =
         }
         if (key.downArrow) {
             setSelectedIdx(i => {
-                const next = Math.min(items.length - 1, i + 1);
+                const len = Array.isArray(items) ? items.length : 0;
+                const next = Math.min(Math.max(0, len - 1), i + 1);
                 setScrollTop(st => (next >= st + maxVisible ? next - maxVisible + 1 : st));
                 return next;
             });
@@ -29,9 +30,10 @@ export const PanelList = ({ label, items, focused, onSelect, maxVisible = 6 }) =
     });
 
     useEffect(() => {
-        setSelectedIdx(i => Math.min(i, Math.max(0, items.length - 1)));
-        setScrollTop(st => Math.min(st, Math.max(0, items.length - maxVisible)));
-    }, [items.length]);
+        const len = Array.isArray(items) ? items.length : 0;
+        setSelectedIdx(i => Math.min(i, Math.max(0, len - 1)));
+        setScrollTop(st => Math.min(st, Math.max(0, len - maxVisible)));
+    }, [Array.isArray(items) ? items.length : 0]);
 
     const actualItems = Array.isArray(items) ? items : [];
     const visibleItems = actualItems.slice(scrollTop, scrollTop + maxVisible);
@@ -57,8 +59,8 @@ export const PanelList = ({ label, items, focused, onSelect, maxVisible = 6 }) =
                 const title = cleanText(item.displayTitle || sig.title || "");
                 if (!title) return null;
                 
-                const itemDirection = item.direction || sig.direction || "";
-                let textColor = (itemDirection === "bear") ? "red" : "white";
+                const textColor = category ? getSignalColor(category, item) : "white";
+                
                 return h(Box, { key: realIdx, width: "100%", overflow: "hidden" },
                     h(Text, {
                         backgroundColor: isFocused ? "red" : undefined,

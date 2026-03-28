@@ -47,6 +47,54 @@ export const formatTime = (iso) => {
         const isToday = d.toDateString() === now.toDateString();
         return isToday
             ? d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })
-            : `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
+            : `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     } catch { return "--:--"; }
+};
+
+/**
+ * 根据不同信号模块（category），专门定制列表项颜色的策略控制
+ * @param {string} category 模块名称
+ * @param {object} item 信号对应的原始项
+ */
+export const getSignalColor = (category, item) => {
+    // 默认非信号模块为白色
+    if (!["breakout", "exhaustion", "goldenPit", "liquidation"].includes(category)) return "white";
+
+    const sig = item.signals?.[0] || {};
+    const details = sig.details || {};
+    const title = (sig.title || item.displayTitle || "").toLowerCase();
+    
+    // 如果数据层带有明确方向属性，提取备用
+    const direction = item.direction || sig.direction || "";
+
+    switch (category) {
+        case "breakout":
+            // 突破：UP(bull) -> 绿, DOWN(bear) -> 红
+            if (direction === "bull" || title.includes("up")) return "white";
+            if (direction === "bear" || title.includes("down")) return "red";
+            return "white";
+
+        case "goldenPit":
+            // 黄金坑：Bull -> 绿, Bear -> 红
+            if (direction === "bull" || title.includes("bull")) return "white";
+            if (direction === "bear" || title.includes("bear")) return "red";
+            return "white";
+
+        case "liquidation":
+            // 清算：SHORT (空头爆仓) -> 逼空上涨(绿)；LONG (多头爆仓) -> 加速下跌(红)
+            const isLong = (details.Side || "").toLowerCase().includes("sell") || direction === "bear" || title.includes("long");
+            const isShort = (details.Side || "").toLowerCase().includes("buy") || direction === "bull" || title.includes("short");
+            if (isShort) return "white";
+            if (isLong) return "red";
+            return "white";
+
+        case "exhaustion":
+            // 衰竭：SELLER (空头衰竭) -> 见底反转(绿)；BUYER (多头衰竭) -> 见顶反转(红)
+            if (title.includes("seller")) return "white";
+            if (title.includes("buyer")) return "red";
+            return "white";
+
+        default:
+            return "white";
+    }
 };
