@@ -25,7 +25,7 @@ const snapshotCmd = new Command("snapshot")
             const isBinaryMode = storage === "local";
 
             const res = await signedRequest(
-                "/mcp/snapshot", 
+                "/cli/snapshot", 
                 { ticker, tf, storage }, 
                 isBinaryMode ? { responseType: "arraybuffer" } : {}
             );

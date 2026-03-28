@@ -4,6 +4,49 @@ import { signedRequest } from "../utils/api.js";
 import logger from "../utils/logger.js";
 import { t, getLang } from "../utils/i18n.js";
 
+const handleTokenUnlock = (data, options, lang) => {
+    let signals = data.signals || [];
+    const limit = parseInt(options.limit) || 10;
+    signals = signals.slice(0, limit);
+
+    logger.success(t("FETCH_SUCCESS", { count: signals.length }));
+    if (data.updatedAt) {
+        const updateTimeStr = new Date(data.updatedAt).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
+            month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+        }).replace(/\//g, "-");
+        console.log(chalk.dim(`    updateAt: ${updateTimeStr}`));
+    }
+
+    signals.forEach((item, index) => {
+        const symbol = chalk.yellow.bold(item.symbol || "UNKNOWN");
+        const perc = parseFloat(item.perc || 0);
+        const percColor = perc > 5 ? chalk.red : chalk.green;
+        const unlockAt = new Date(item.ts).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
+            month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+        }).replace(/\//g, "-");
+
+        const diffMs = item.ts - Date.now();
+        let countDownStr = "Expired";
+        if (diffMs > 0) {
+            const days = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+            const hours = Math.floor((diffMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+            const mins = Math.floor((diffMs % (60 * 60 * 1000)) / (60 * 1000));
+            countDownStr = `${days}Day${hours}Hr${mins}Min`;
+        }
+
+        console.log(`\n${chalk.bold(`[${index + 1}]`)} ${chalk.dim(`capturedAt:${new Date(data.updatedAt || Date.now()).toLocaleDateString()}`)} `);
+        console.log(`    ${chalk.dim("token: ")}${symbol}`);
+        console.log(`    ${chalk.dim("marketCap: ")}${chalk.white(item.marketCap || "N/A")}`);
+        console.log(`    ${chalk.dim("unlockProgress: ")}${chalk.blue(item.progress || "0%")}`);
+        console.log(`    ${chalk.dim("unlockTime: ")} ${chalk.white(unlockAt)}`);
+        console.log(`    ${chalk.dim("unlockTimeCountDown: ")} ${chalk.cyan(countDownStr)}`);
+        console.log(`    ${chalk.dim("unlockQuantity: ")}${chalk.white(item.unlockToken || "N/A")}`);
+        console.log(`    ${chalk.dim("unlockValue: ")} ${chalk.white(item.unlockTokenVal?.split("(")[0]?.trim() || "N/A")}`);
+        console.log(`    ${chalk.dim("unlockPercent: ")}${percColor(`${perc}% of M.Cap`)}`);
+    });
+    console.log("");
+};
+
 const signalsCmd = new Command("signals")
     .description(t("SIGNALS_DESC"))
     .argument("[channel]", t("ARG_CHANNEL_DESC") || "Channel name")
@@ -13,219 +56,63 @@ const signalsCmd = new Command("signals")
     .option("--json", "Output raw JSON data")
     .addHelpText("after", `\n${t("SIGNALS_LIMIT_NOTE")}`)
     .action(async (channel, options) => {
-        if (!channel) {
-            signalsCmd.help();
-            return;
-        }
+        if (!channel) return signalsCmd.help();
         try {
-            const res = await signedRequest("/mcp/signals", { 
+            const res = await signedRequest("/cli/signals", { 
                 channelName: channel, 
                 limit: options.limit,
                 after: options.after
             });
             const { status, data, message } = res.data;
+            if (!status) return logger.error(`${t("ERR_NETWORK")}: ${message}`);
+            if (options.json) return logger.json(data);
 
-            if (!status) {
-                logger.error(`${t("ERR_NETWORK")}: ${message}`);
+            const lang = getLang();
+
+            // 1. 处理 Token Unlock 劫持频道 (数据结构为 { signals, updatedAt })
+            if (channel === "token-unlock") {
+                handleTokenUnlock(data, options, lang);
                 return;
             }
 
-            if (options.json) {
-                if (channel === "token-unlock") {
-                    const cleanData = data.map(item => {
-                        const sig = item.signals && item.signals[0];
-                        if (!sig) return item;
-                        
-                        const baseTime = new Date(item.timestamp).getTime();
-                        const tokens = [];
-                        for (const [key, value] of Object.entries(sig.details || {})) {
-                            const keyMatch = key.match(/(.+)\s*-\s*(.+)\s*\n\s*In\s+(.+)/i);
-                            if (!keyMatch) continue;
+            // 2. 处理常规信号频道 (数据结构为 Array<Signal>)
+            if (!Array.isArray(data)) return logger.error(t("ERR_DATA_FORMAT"));
+            
+            logger.success(t("FETCH_SUCCESS", { count: data.length }));
+            
+            data.forEach((item, index) => {
+                const date = new Date(item.timestamp).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
+                    hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
+                }).replace(/\//g, "-");
 
-                            const symbol = keyMatch[1].trim();
-                            const percent = keyMatch[2].trim();
-                            const offsetStr = keyMatch[3].trim();
+                console.log(`\n${chalk.bold(`[${index + 1}]`)} ${chalk.dim(`(${date})`)}`);
 
-                            let offsetMs = 0;
-                            const timeParts = offsetStr.match(/(\d+)\s*(Day|Hour|Min)/gi);
-                            if (timeParts) {
-                                timeParts.forEach(part => {
-                                    const m = part.match(/(\d+)\s*(d|h|m)/i);
-                                    if (m) {
-                                        const v = parseInt(m[1]);
-                                        const u = m[2].toLowerCase();
-                                        if (u.startsWith("d")) offsetMs += v * 24 * 60 * 60 * 1000;
-                                        else if (u.startsWith("h")) offsetMs += v * 60 * 60 * 1000;
-                                        else if (u.startsWith("m")) offsetMs += v * 60 * 1000;
-                                    }
-                                });
-                            }
-                            const unlockTime = new Date(baseTime + offsetMs);
-                            const diff = unlockTime.getTime() - Date.now();
-                            let remaining = "Unlocked";
-                            if (diff > 0) {
-                                const rd = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                const rh = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                                const rm = Math.floor((diff / (1000 * 60)) % 60);
-                                remaining = `In ${rd > 0 ? `${rd}d ` : ""}${rh > 0 ? `${rh}h ` : ""}${rm}m`;
-                            }
+                const sig = item.signals?.[0] || {};
+                const title = sig.title || "";
+                const desc = sig.description || "";
+                
+                const titleColor = sig.direction === "bull" ? chalk.green.bold : (sig.direction === "bear" ? chalk.red.bold : chalk.bold);
+                console.log(`    ${titleColor(title)}`);
 
-                            let mcapPercent = "";
-                            const vLines = value.replace(/```/g, "").trim().split("\n");
-                            const circulationSupply = (vLines.find(l => l.includes("🔋")) || "").replace("🔋", "").trim();
-                            const unlockingProgress = (vLines.find(l => l.includes("⌛")) || "").replace("⌛", "").trim();
-                            const unlockingAmount = (vLines.find(l => l.includes("🔑")) || "").replace("🔑", "").trim();
-                            const unlockingValueLine = vLines.find(l => l.includes("💰")) || "";
-                            const vMatch = unlockingValueLine.match(/\((.+)\)/);
-                            if (vMatch) mcapPercent = vMatch[1].replace("of M.Cap", "").trim();
-                            const unlockingValue = unlockingValueLine.replace("💰", "").replace(/\s*\(.+\)/, "").trim();
-
-                            tokens.push({
-                                symbol, percent, unlockAt: unlockTime.toISOString(), remaining,
-                                circulationSupply, unlockingProgress, unlockingAmount, unlockingValue, mcapPercent
-                            });
-                        }
-                        return { ...item, tokens, signals: undefined }; // Simplify JSON
+                if (sig.details && Object.keys(sig.details).length > 0) {
+                    Object.entries(sig.details).forEach(([key, val]) => {
+                        if (!val) return;
+                        const cleanVal = val.split("\n").join("\n            ");
+                        console.log(`    ${chalk.cyan(key.padEnd(20))}: ${chalk.white(cleanVal)}`);
                     });
-                    logger.json(cleanData);
-                } else {
-                    logger.json(data);
                 }
-            } else {
-                logger.success(t("FETCH_SUCCESS", { count: data.length }));
-                data.forEach((item, index) => {
-                    const signals = (item.signals && item.signals.length > 0) ? item.signals : [{ title: item.title || item.content?.substring(0, 50) + "...", description: "", details: {} }];
-                    const lang = getLang();
-                    const date = new Date(item.timestamp).toLocaleString(lang === "zh" ? "zh-CN" : "en-US", {
-                        hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit"
-                    }).replace(/\//g, "-");
 
-                    // 打印项目头部（如果只有一个信号且标题相同，可简化，但此处为了通用性保留索引）
-                    if (channel !== "token-unlock") {
-                        console.log(`\n${chalk.bold(`[${index + 1}]`)} ${chalk.dim(`(${date})`)}`);
-                    }
+                if (desc) {
+                    const cleanDesc = desc.trim().split("\n").map(l => `    ${l}`).join("\n");
+                    console.log(chalk.gray(cleanDesc));
+                }
 
-                    signals.forEach((sig, sigIndex) => {
-                        const title = sig.title;
-                        const desc = sig.description || "";
-                        const indent = channel === "token-unlock" ? "" : "    ";
-
-                        if (channel !== "token-unlock") {
-                            console.log(`${indent}${chalk.bold(title)}`);
-                        }
-
-                        if (channel.startsWith("breakout")) {
-                            const breakPrice = sig?.details?.BreakPrice || sig?.breakPrice || sig?.break_price;
-                            if (breakPrice) console.log(`${indent}    ${chalk.yellow(`BreakPrice: ${breakPrice}`)}`);
-                        } else if (channel.startsWith("exhaustion")) {
-                            const symbol = title.includes(" for ") ? title.split(" for ").pop()?.trim() : "";
-                            if (symbol) console.log(`${indent}    ${chalk.green(`Symbol: ${symbol}`)}`);
-                            const timeframe = sig?.details?.Timeframe || sig?.details?.timeframe;
-                            const exhaustionSide = sig?.details?.["Exhaustion Side"] || sig?.details?.exhaustion_side;
-                            if (timeframe) console.log(`${indent}    ${chalk.cyan(`Timeframe: ${timeframe}`)}`);
-                            if (exhaustionSide) console.log(`${indent}    ${chalk.magenta(`Exhaustion Side: ${exhaustionSide}`)}`);
-                        }
-                        
-                        if (channel === "token-unlock") {
-                            // Token Unlock 特有逻辑（保持原样，但适配遍历环境）
-                            if (sigIndex === 0) console.log(`\n${chalk.bold(`[${index + 1}] ${title}`)} ${chalk.dim(`(${date})`)}`);
-                            const baseTime = new Date(item.timestamp).getTime();
-                            let subIndex = 1;
-                            for (const [key, value] of Object.entries(sig.details || {})) {
-                                const keyMatch = key.match(/(.+)\s*-\s*(.+)\s*\n\s*In\s+(.+)/i);
-                                if (!keyMatch) continue;
-                                const token = keyMatch[1].trim();
-                                const percent = keyMatch[2].trim();
-                                const offsetStr = keyMatch[3].trim();
-                                let offsetMs = 0;
-                                const timeParts = offsetStr.match(/(\d+)\s*(Day|Hour|Min)/gi);
-                                if (timeParts) {
-                                    timeParts.forEach(part => {
-                                        const m = part.match(/(\d+)\s*(d|h|m)/i);
-                                        if (m) {
-                                            const v = parseInt(m[1]);
-                                            const u = m[2].toLowerCase();
-                                            if (u.startsWith("d")) offsetMs += v * 24 * 60 * 60 * 1000;
-                                            else if (u.startsWith("h")) offsetMs += v * 60 * 60 * 1000;
-                                            else if (u.startsWith("m")) offsetMs += v * 60 * 1000;
-                                        }
-                                    });
-                                }
-                                const unlockTime = new Date(baseTime + offsetMs);
-                                const diff = unlockTime.getTime() - Date.now();
-                                let remainingStr = "";
-                                if (diff <= 0) remainingStr = chalk.red("Unlocked / Ongoing");
-                                else {
-                                    const rd = Math.floor(diff / (1000 * 60 * 60 * 24));
-                                    const rh = Math.floor((diff / (1000 * 60 * 60)) % 24);
-                                    const rm = Math.floor((diff / (1000 * 60)) % 60);
-                                    remainingStr = "In " + (rd > 0 ? `${rd}d ` : "") + (rh > 0 ? `${rh}h ` : "") + `${rm}m`;
-                                }
-                                let percentOfMCap = "";
-                                const formattedValue = value.replace(/```/g, "").trim().split("\n")
-                                    .map(line => {
-                                        let l = line.trim();
-                                        if (l.includes("💰") && l.includes("(") && l.includes(")")) {
-                                            const pMatch = l.match(/\((.+)\)/);
-                                            if (pMatch) {
-                                                percentOfMCap = pMatch[1].replace("of M.Cap", "").trim();
-                                                l = l.replace(/\s*\(.+\)/, "");
-                                            }
-                                        }
-                                        l = l.replace(/🔋/g, "Circulation supply:  ")
-                                             .replace(/⌛/g, "Unlocking progress:   ")
-                                             .replace(/🔑/g, "Unlocking amount:     ")
-                                             .replace(/💰/g, "Unlocking value:      ");
-                                        return `    ${l}`;
-                                    }).join("\n");
-                                console.log(`\n    ${chalk.yellow.bold(`[${subIndex++}] Token: ${token}`)}`);
-                                console.log(`    ${chalk.dim("Unlock At:")}            ${chalk.white(unlockTime.toLocaleString(lang === "zh" ? "zh-CN" : "en-US", { hour12: false, month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).replace(/\//g, "-"))} (${chalk.cyan(remainingStr)})`);
-                                console.log(chalk.white(formattedValue));
-                                if (percentOfMCap) console.log(`    ${chalk.white(`Percent:               ${percentOfMCap} of its Market Cap`)}`);
-                            }
-                        } else if (channel === "market-today") {
-                            // Market Today 精细清洗逻辑
-                            if (title === "Fear And Greed Index") {
-                                if (sig?.details) {
-                                    for (const [k, v] of Object.entries(sig.details)) {
-                                        console.log(`${indent}    ${chalk.cyan(`${k}:`)} ${chalk.white(v)}`);
-                                    }
-                                }
-                            } else if (sig?.details) {
-                                // 其他子信号（如果有）显示 details
-                                for (const [k, v] of Object.entries(sig.details)) {
-                                    console.log(`${indent}    ${chalk.cyan(`${k}:`)} ${chalk.white(v)}`);
-                                }
-                            }
-                        } else if (channel === "etf-tracker") {
-                            if (sig?.details) {
-                                for (const [k, v] of Object.entries(sig.details)) {
-                                    console.log(`${indent}    ${chalk.cyan(`${k}:`)} ${chalk.white(v)}`);
-                                }
-                            }
-                        }
-
-                        // 描述处理：token-unlock 已处理
-                        if (desc && channel !== "token-unlock") {
-                            const cleanDesc = desc.replace(/```/g, "").trim().split("\n").map(l => `${indent}    ${l}`).join("\n");
-                            if (cleanDesc) console.log(chalk.gray(cleanDesc));
-                        }
-
-                        // 图片/附件处理
-                        const attachments = [...(sig.image ? [sig.image] : [])];
-                        if (sigIndex === signals.length - 1 && item.attachments) {
-                            attachments.push(...item.attachments);
-                        }
-                        if (attachments.length > 0) {
-                            attachments.forEach(att => {
-                                const url = typeof att === "string" ? att : (att.url || att.proxy_url);
-                                if (url) console.log(`${indent}    ${chalk.blue.underline(url)}`);
-                            });
-                        }
-                    });
+                const attachments = [...(item.attachments || []), ...(item.image ? [item.image] : [])];
+                new Set(attachments).forEach(url => {
+                    if (url) console.log(`    ${chalk.blue.underline(url)}`);
                 });
-                console.log("");
-            }
+            });
+            console.log("");
         } catch (error) {
             logger.error(`Signals Error: ${error.message}`);
         }

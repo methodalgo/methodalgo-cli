@@ -70,7 +70,7 @@ export async function signedRequest(endpoint, params = {}, extraOptions = {}) {
 export async function validateApiKey(apiKey) {
     if (!apiKey) return false;
     const apiBase = config.get("apiBase");
-    const endpoint = "/mcp/news";
+    const endpoint = "/cli/news";
     const timestamp = Date.now().toString();
 
     // 构造签名
