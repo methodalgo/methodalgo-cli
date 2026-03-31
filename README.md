@@ -8,6 +8,8 @@
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 ![Node Version](https://img.shields.io/badge/node-%3E%3D20.0.0-green.svg)
 [![NPM Version](https://img.shields.io/npm/v/methodalgo-cli.svg)](https://www.npmjs.com/package/methodalgo-cli)
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-black?logo=github)](https://github.com/methodalgo/methodalgo-cli)
+
 
 
 ```text
