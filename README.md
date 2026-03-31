@@ -47,6 +47,15 @@ methodalgo
 ```
 *Note: this method can auto update when new version released.*
 
+#### 🔑 API Key
+To use the CLI, you need an API key. You can create and manage your keys here:
+> [**https://account.methodalgo.com/account/api-keys**](https://account.methodalgo.com/account/api-keys)
+
+Once you have your key, run:
+```bash
+methodalgo login
+```
+
 ####  Alternative: Standalone Binary 
 
 No Node.js Required, Download the binary from [Releases](https://github.com/methodalgo/methodalgo-cli/releases). To make it globally accessible:
@@ -179,6 +188,15 @@ npm install -g methodalgo-cli
 methodalgo
 ```
 *注：此方式在发布新版本时可自动更新。*
+
+#### 🔑 API Key
+使用 CLI 需要 API Key。您可以在此处创建和管理您的密钥：
+> [**https://account.methodalgo.com/account/api-keys**](https://account.methodalgo.com/account/api-keys)
+
+获取密钥后，请运行：
+```bash
+methodalgo login
+```
 
 ####  其他方式：独立二进制版
 
