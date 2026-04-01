@@ -54,6 +54,7 @@ To use the CLI, you need an API key. You can create and manage your keys here:
 Once you have your key, run:
 ```bash
 methodalgo login
+# Or set via environment variable: export METHODALGO_API_KEY=your_key
 ```
 
 ####  Alternative: Standalone Binary 
@@ -196,6 +197,7 @@ methodalgo
 获取密钥后，请运行：
 ```bash
 methodalgo login
+# Or set via environment variable: export METHODALGO_API_KEY=your_key
 ```
 
 ####  其他方式：独立二进制版
@@ -307,3 +309,23 @@ methodalgo
 ---
 
 *Powered by Methodalgo.*
+
+#### ⚙️ Environment Variables
+
+You can use environment variables to configure the CLI. Environment variables take precedence over local configuration files.
+
+| Variable | Description |
+| --- | --- |
+| `METHODALGO_API_KEY` | Your Methodalgo API Key. |
+| `METHODALGO_API_BASE` | Custom API base URL (Default: `https://api.methodalgo.com`). |
+
+
+#### ⚙️ 环境变量
+
+您可以使用环境变量来配置 CLI。环境变量的优先级高于本地配置文件。
+
+| 变量名 | 描述 |
+| --- | --- |
+| `METHODALGO_API_KEY` | 您的 Methodalgo API Key。 |
+| `METHODALGO_API_BASE` | 自定义 API 基础 URL（默认：`https://api.methodalgo.com`）。 |
+

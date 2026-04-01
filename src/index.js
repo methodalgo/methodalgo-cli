@@ -48,8 +48,15 @@ program.on("command:*", () => {
 });
 
 async function main() {
-    // 检查是否需要引导 (无 API Key 则引导)
-    if (!config.get("apiKey") && !process.argv.includes("config") && !process.argv.includes("--help") && !process.argv.includes("-h")) {
+    // 检查是否需要引导 (无环境变量且无本地 API Key 则引导)
+    const hasEnvKey = !!process.env.METHODALGO_API_KEY;
+    const hasConfigKey = !!config.get("apiKey");
+
+    if (!process.argv.includes("--json") && hasEnvKey) {
+        console.error(chalk.blue("ℹ️  " + t("INFO_USE_ENV_KEY")));
+    }
+
+    if (!hasEnvKey && !hasConfigKey && !process.argv.includes("config") && !process.argv.includes("--help") && !process.argv.includes("-h")) {
         await startOnboarding(finalBanner);
     }
     

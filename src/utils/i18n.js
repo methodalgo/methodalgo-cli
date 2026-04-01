@@ -3,6 +3,8 @@ import config from "./config-manager.js";
 
 const translations = {
     en: {
+        INFO_USE_ENV_KEY: "Using API Key from environment variable (METHODALGO_API_KEY).",
+        INFO_USE_CONFIG_KEY: "Using API Key from local configuration.",
         HELP_DESC: `Methodalgo Market Intelligence Tool (Optimized for LLMs)
 
 ${chalk.dim("Note: All symbols are distinguished by their names:")}
@@ -118,6 +120,8 @@ ${chalk.cyan("- report")}: ${chalk.gray("Institutional research reports.")}`,
         UPDATE_BINARY_GUIDE: "Please download the latest binary from: https://github.com/methodalgo/methodalgo-cli/releases",
     },
     zh: {
+        INFO_USE_ENV_KEY: "正在使用环境变量中的 API Key (METHODALGO_API_KEY)。",
+        INFO_USE_CONFIG_KEY: "正在使用本地配置中的 API Key。",
         HELP_DESC: `Methodalgo 市场情报工具 (针对大模型优化版)
 
 ${chalk.dim("注：所有 symbol 不特定说明是现货还是合约，而是通过名称区分：")}

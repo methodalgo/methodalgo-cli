@@ -60,6 +60,9 @@ configCmd
 
         const configKey = API_KEY_MAP[key];
         const value = config.get(configKey);
+        if (configKey === "apiKey" && process.env.METHODALGO_API_KEY) {
+            logger.info(t("INFO_USE_ENV_KEY"));
+        }
         if (value) {
             console.log(value);
         } else {
