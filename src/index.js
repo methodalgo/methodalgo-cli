@@ -10,6 +10,7 @@ import signalsCmd from "./commands/signals.js";
 import dashboardCmd from "./commands/dashboard.js";
 import calendarCmd from "./commands/calendar.js";
 import updateCmd from "./commands/update.js";
+import loginCmd from "./commands/login.js";
 import logoutCmd from "./commands/logout.js";
 import config from "./utils/config-manager.js";
 import { startOnboarding } from "./utils/onboard.js";
@@ -35,6 +36,7 @@ program.addCommand(signalsCmd.description(t("SIGNALS_DESC")));
 program.addCommand(dashboardCmd.description(t("DASHBOARD_DESC")));
 program.addCommand(calendarCmd.description(t("CALENDAR_DESC")));
 program.addCommand(updateCmd.description(t("UPDATE_DESC")));
+program.addCommand(loginCmd);
 program.addCommand(logoutCmd);
 
 // 确保所有层级的指令（包括嵌套子指令）在参数缺失/报错时也显示帮助信息
@@ -58,7 +60,8 @@ async function main() {
         console.error(chalk.blue("ℹ️  " + t("INFO_USE_ENV_KEY")));
     }
 
-    if (!hasEnvKey && !hasConfigKey && !process.argv.includes("config") && !process.argv.includes("--help") && !process.argv.includes("-h")) {
+    const isExcluded = ["config", "login", "logout", "update", "--help", "-h"].some(arg => process.argv.includes(arg));
+    if (!hasEnvKey && !hasConfigKey && !isExcluded) {
         await startOnboarding(finalBanner);
     }
     
