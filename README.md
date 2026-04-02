@@ -158,7 +158,31 @@ Get multi-language crypto market news filtered by AI.
 ]
 ```
 
-#### 🆙 Update Tool (`update`)
+```
+ 
+ #### 📅 Economic Calendar (`calendar`)
+ Get real-time economic events and macro data.
+ 
+ *   **Usage**: `methodalgo calendar --countries <codes> [options]`
+ *   **Options**:
+     *   `-c, --countries <codes>`: **(Required)** Comma-separated ISO country codes (e.g., US,EU,JP).
+     *   `-f, --from <date>`: ISO start date (Default: 2 days ago) (Format: YYYY-MM-DD).
+     *   `-t, --to <date>`: ISO end date (Default: 2 days later) (Format: YYYY-MM-DD).
+     *   `--json`: Output raw event data in JSON format.
+ 
+ **Example**: `methodalgo calendar --countries US,EU`
+ 
+ **💡 Response Preview**
+ - **List Mode**:
+ ```text
+ [Index] Date Time [Importance] Country
+     Event Title
+     Actual: Value | Forecast: Value | Previous: Value
+     Source: [Name] [URL]
+     Description Summary...
+ ```
+ 
+ #### 🆙 Update Tool (`update`)
 Update `methodalgo-cli` to the latest version.
 
 *   **Usage**: `methodalgo update`
@@ -301,7 +325,31 @@ methodalgo
 ]
 ```
 
-#### 🆙 更新工具 (`update`)
+```
+ 
+ #### 📅 经济日历 (`calendar`)
+ 获取实时全球经济事件与宏观数据。
+ 
+ *   **用法**: `methodalgo calendar --countries <codes> [options]`
+ *   **选项**:
+     *   `-c, --countries <codes>`: **(必填)** 逗号分隔的 ISO 国家代码 (例如: US,EU,JP)。
+     *   `-f, --from <date>`: ISO 起始日期 (默认: 2 天前) (格式: YYYY-MM-DD)。
+     *   `-t, --to <date>`: ISO 截止日期 (默认: 2 天后) (格式: YYYY-MM-DD)。
+     *   `--json`: 以 JSON 格式输出原始事件数据。
+ 
+ **示例**: `methodalgo calendar --countries US,CN`
+ 
+ **💡 响应预览**
+ - **标准模式**:
+ ```text
+ [序号] 日期 时间 [重要性] 国家
+     事件标题
+     实际值: Value | 预测值: Value | 前值: Value
+     来源: [名称] [URL]
+     事件详情摘要...
+ ```
+ 
+ #### 🆙 更新工具 (`update`)
 将 `methodalgo-cli` 更新至最新版本。
 
 *   **用法**: `methodalgo update`

@@ -8,6 +8,7 @@ import snapshotCmd from "./commands/snapshot.js";
 import newsCmd from "./commands/news.js";
 import signalsCmd from "./commands/signals.js";
 import dashboardCmd from "./commands/dashboard.js";
+import calendarCmd from "./commands/calendar.js";
 import updateCmd from "./commands/update.js";
 import logoutCmd from "./commands/logout.js";
 import config from "./utils/config-manager.js";
@@ -32,6 +33,7 @@ program.addCommand(snapshotCmd.description(t("SNAPSHOT_DESC")));
 program.addCommand(newsCmd.description(t("NEWS_DESC")));
 program.addCommand(signalsCmd.description(t("SIGNALS_DESC")));
 program.addCommand(dashboardCmd.description(t("DASHBOARD_DESC")));
+program.addCommand(calendarCmd.description(t("CALENDAR_DESC")));
 program.addCommand(updateCmd.description(t("UPDATE_DESC")));
 program.addCommand(logoutCmd);
 
