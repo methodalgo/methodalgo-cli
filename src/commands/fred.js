@@ -67,20 +67,56 @@ async function fetchObservations(seriesId, opts = {}) {
 // ─── Command Definition ────────────────────────────────────────
 
 const fredCmd = new Command("fred")
-    .description("FRED Economic Data — 800,000+ time series from the Federal Reserve")
-    .addHelpText("after", `
-${chalk.dim("Requires a free FRED API key.")}
+    .description(t("FRED_DESC"))
+    .addHelpText("after", `${t("FRED_HELP_DATA_TYPES")}\n${t("FRED_HELP_EXAMPLES")}`);
+
+// 仅当未设置 API Key 时才显示获取 Key 的提示
+if (!fred.getFredApiKey()) {
+    fredCmd.addHelpText("after", `
+${chalk.yellow("⚠️  Requires a free FRED API key.")}
 ${chalk.dim("Get one at: https://fred.stlouisfed.org/docs/api/api_key.html")}
 ${chalk.dim("Then run: methodalgo config set fred-api-key <your-key>")}
 `);
+}
+
+// 增加预处理钩子，支持在指令运行前交互式设置 Key
+fredCmd.hook("preAction", async (thisCommand, actionCommand) => {
+    // 排除 help 指令
+    if (actionCommand.name() === "help") return;
+
+    if (!fred.getFredApiKey()) {
+        const readline = await import("readline");
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+
+        console.log(chalk.yellow(`\n⚠️  ${t("ERR_FRED_KEY_MISSING") || "FRED API Key is not configured."}`));
+        const answer = await question(chalk.bold("❓ Would you like to set it now? (y/N): "));
+        
+        if (answer.toLowerCase() === "y") {
+            const key = await question(chalk.bold("🔑 Enter your FRED API Key: "));
+            if (key) {
+                config.set("fredApiKey", key);
+                logger.success("✓ FRED API Key saved. Proceeding with command...\n");
+            } else {
+                logger.warn("Skipped. Command may fail.\n");
+            }
+        } else {
+            console.log(chalk.dim("You can set it later using: methodalgo config set fred-api-key <your-key>\n"));
+        }
+        rl.close();
+    }
+});
+
+
+
 
 // ─── search ─────────────────────────────────────────────────────
 
 fredCmd
     .command("search <query>")
-    .description("Search for FRED series by keywords")
+    .description(t("FRED_SEARCH_DESC"))
     .option("-l, --limit <n>", "Max results", "10")
-    .option("--order <field>", "Order by (search_rank, series_id, title, units, frequency, seasonal_adjustment, realtime_start, realtime_end, last_updated, observation_start, observation_end, popularity, group_popularity)", "search_rank")
+    .option("--order <field>", t("OPT_FRED_ORDER"), "search_rank")
     .option("--sort <dir>", "Sort direction (asc, desc)", "desc")
     .option("--tag <names>", "Filter by tag names (semicolon-separated)")
     .option("--json", "Output JSON")
@@ -115,7 +151,7 @@ fredCmd
 
 fredCmd
     .command("get <series_id>")
-    .description("Get observations for a series")
+    .description(t("FRED_GET_DESC"))
     .option("--tail <n>", "Show last N observations")
     .option("--start <date>", "Start date (YYYY-MM-DD)")
     .option("--end <date>", "End date (YYYY-MM-DD)")
@@ -155,7 +191,7 @@ fredCmd
 
 fredCmd
     .command("info <series_id>")
-    .description("Get metadata for a series")
+    .description(t("FRED_INFO_DESC"))
     .option("--json", "Output JSON")
     .action(async (seriesId, opts) => {
         try {
@@ -182,7 +218,7 @@ fredCmd
 
 fredCmd
     .command("latest <series_id>")
-    .description("Get the latest value for a series")
+    .description(t("FRED_LATEST_DESC"))
     .option("--json", "Output JSON")
     .action(async (seriesId, opts) => {
         try {
@@ -203,7 +239,7 @@ fredCmd
 
 fredCmd
     .command("compare <series_ids>")
-    .description("Compare multiple series (comma-separated IDs)")
+    .description(t("FRED_COMPARE_DESC"))
     .option("--tail <n>", "Show last N observations")
     .option("--start <date>", "Start date (YYYY-MM-DD)")
     .option("--end <date>", "End date (YYYY-MM-DD)")
@@ -244,7 +280,7 @@ fredCmd
                 });
             }
 
-            console.log(chalk.bold("Series comparison:\n"));
+            console.log(chalk.bold(`\n--- ${t("FRED_COMPARE_TITLE")} ---`));
             for (const r of results) console.log(`  ${chalk.cyan(r.id)}: ${r.title}`);
             console.log("");
 
@@ -262,7 +298,7 @@ fredCmd
 
 fredCmd
     .command("changes <series_id>")
-    .description("Show recent changes and trends for a series")
+    .description(t("FRED_CHANGES_DESC"))
     .option("-p, --periods <n>", "Number of periods to show", "6")
     .option("--json", "Output JSON")
     .action(async (seriesId, opts) => {
@@ -314,7 +350,7 @@ fredCmd
 
 fredCmd
     .command("spread <series1> <series2>")
-    .description("Compute spread (difference) between two series")
+    .description(t("FRED_SPREAD_DESC"))
     .option("--tail <n>", "Show last N observations", "12")
     .option("--start <date>", "Start date (YYYY-MM-DD)")
     .option("--json", "Output JSON")
@@ -369,7 +405,7 @@ fredCmd
 
 fredCmd
     .command("liquidity")
-    .description("Net Liquidity = Fed Balance Sheet - Reverse Repo - TGA (crypto signal)")
+    .description(t("FRED_LIQUIDITY_DESC"))
     .option("--tail <n>", "Show last N observations", "12")
     .option("--m2", "Include M2 Money Supply")
     .option("--json", "Output JSON")
@@ -452,8 +488,8 @@ fredCmd
 
 fredCmd
     .command("zscore <series_id>")
-    .description("Z-score & percentile of current value vs history")
-    .option("--lookback <period>", "Lookback window (e.g. 5y, 24m, 365d)", "10y")
+    .description(t("FRED_ZSCORE_DESC"))
+    .option("--lookback <period>", t("OPT_FRED_LOOKBACK"), "10y")
     .option("--json", "Output JSON")
     .action(async (seriesId, opts) => {
         try {
@@ -515,12 +551,12 @@ fredCmd
 
 fredCmd
     .command("dashboard")
-    .description("Full macro overview — rates, inflation, employment, liquidity, financial conditions")
+    .description(t("FRED_DASHBOARD_DESC"))
     .option("--json", "Output JSON")
     .action(async (opts) => {
         try {
             const sections = [
-                ["RATES & MONETARY POLICY", [
+                [t("FRED_SEC_RATES"), [
                     ["FEDFUNDS", "Fed Funds Rate", "%"],
                     ["DFEDTARU", "Target Upper", "%"],
                     ["DGS2", "2Y Treasury", "%"],
@@ -529,17 +565,17 @@ fredCmd
                     ["T10Y2Y", "10Y-2Y Spread", "%"],
                     ["T10Y3M", "10Y-3M Spread", "%"],
                 ]],
-                ["INFLATION", [
+                [t("FRED_SEC_INFLATION"), [
                     ["T5YIE", "5Y Breakeven", "%"],
                     ["T10YIE", "10Y Breakeven", "%"],
                     ["MICH", "Michigan Expectations", "%"],
                 ]],
-                ["EMPLOYMENT", [
+                [t("FRED_SEC_EMPLOYMENT"), [
                     ["UNRATE", "Unemployment", "%"],
                     ["ICSA", "Initial Claims", "K"],
                     ["CCSA", "Continued Claims", "K"],
                 ]],
-                ["FINANCIAL CONDITIONS", [
+                [t("FRED_SEC_FINANCE"), [
                     ["VIXCLS", "VIX", ""],
                     ["NFCI", "NFCI", ""],
                     ["BAMLH0A0HYM2", "HY OAS Spread", "%"],
@@ -615,7 +651,7 @@ fredCmd
 
             const w = 56;
             console.log("\n" + "═".repeat(w));
-            console.log(`  MACRO DASHBOARD — ${new Date().toISOString().split("T")[0]}`);
+            console.log(`  ${t("FRED_DASHBOARD_TITLE")} — ${new Date().toISOString().split("T")[0]}`);
             console.log("═".repeat(w));
 
             for (const [secName, items] of sections) {
@@ -664,7 +700,7 @@ fredCmd
 
 fredCmd
     .command("recession")
-    .description("Recession indicator scorecard — 6 classic signals")
+    .description(t("FRED_RECESSION_DESC"))
     .option("--json", "Output JSON")
     .action(async (opts) => {
         try {
@@ -740,18 +776,18 @@ fredCmd
 
             const w = 60;
             console.log("\n" + "═".repeat(w));
-            console.log("  RECESSION SCORECARD");
+            console.log(`  ${t("FRED_RECESSION_TITLE")}`);
             console.log("═".repeat(w) + "\n");
-            console.log(`  ${"Signal".padEnd(28)} ${"Status".padEnd(12)} Reading`);
+            console.log(`  ${t("FRED_COL_SIGNAL").padEnd(28)} ${t("FRED_COL_STATUS").padEnd(12)} ${t("FRED_COL_READING")}`);
             console.log("  " + "─".repeat(w - 4));
             for (const s of signals) {
                 console.log(`  ${s.emoji} ${s.name.padEnd(26)} ${s.status.padEnd(12)} ${s.reading}`);
             }
-            console.log(`\n  Score: ${nWarn}/${signals.length} warning signals`);
-            if (nWarn === 0) console.log("  Assessment: All clear");
-            else if (nWarn <= 2) console.log("  Assessment: Mixed — monitor closely");
-            else if (nWarn <= 4) console.log("  Assessment: Elevated risk");
-            else console.log("  Assessment: High recession probability");
+            console.log(`\n  ${t("FRED_SCORE", { n: nWarn, total: signals.length })}`);
+                        if (nWarn === 0) console.log(`  ${t("FRED_ASSESS_CLEAR")}`);
+                        else if (nWarn <= 2) console.log(`  ${t("FRED_ASSESS_MIXED")}`);
+                        else if (nWarn <= 4) console.log(`  ${t("FRED_ASSESS_ELEVATED")}`);
+                        else console.log(`  ${t("FRED_ASSESS_HIGH")}`);
             console.log("\n" + "═".repeat(w));
         } catch (e) { logger.error(e.message); }
     });
@@ -761,7 +797,7 @@ fredCmd
 // category
 fredCmd
     .command("category [category_id]")
-    .description("Get a FRED category (default: root category 0)")
+    .description(t("FRED_CATEGORY_DESC"))
     .option("--children", "List child categories")
     .option("--series", "List series in category")
     .option("--tags", "List tags for category")
@@ -792,7 +828,7 @@ fredCmd
 // releases
 fredCmd
     .command("releases")
-    .description("List all FRED data releases")
+    .description(t("FRED_RELEASES_DESC"))
     .option("--dates", "Show release dates instead")
     .option("-l, --limit <n>", "Max results", "20")
     .option("--json", "Output JSON")
@@ -816,7 +852,7 @@ fredCmd
 // release
 fredCmd
     .command("release <release_id>")
-    .description("Get details for a specific release")
+    .description(t("FRED_RELEASE_DESC"))
     .option("--series", "List series in this release")
     .option("--dates", "Show release dates")
     .option("--sources", "Show sources")
@@ -847,7 +883,7 @@ fredCmd
 // sources
 fredCmd
     .command("sources")
-    .description("List all FRED data sources")
+    .description(t("FRED_SOURCES_DESC"))
     .option("--json", "Output JSON")
     .action(async (opts) => {
         try {
@@ -860,7 +896,7 @@ fredCmd
 // source
 fredCmd
     .command("source <source_id>")
-    .description("Get a specific source and its releases")
+    .description(t("FRED_SOURCE_DESC"))
     .option("--releases", "List releases from this source")
     .option("--json", "Output JSON")
     .action(async (sourceId, opts) => {
@@ -878,7 +914,7 @@ fredCmd
 // tags
 fredCmd
     .command("tags")
-    .description("List or search FRED tags")
+    .description(t("FRED_TAGS_DESC"))
     .option("-s, --search <text>", "Search tag names")
     .option("-l, --limit <n>", "Max results", "20")
     .option("--json", "Output JSON")
@@ -897,7 +933,7 @@ fredCmd
 // series-updates
 fredCmd
     .command("updates")
-    .description("Get recently updated FRED series")
+    .description(t("FRED_UPDATES_DESC"))
     .option("-l, --limit <n>", "Max results", "20")
     .option("--json", "Output JSON")
     .action(async (opts) => {
@@ -913,7 +949,7 @@ fredCmd
 // vintage dates
 fredCmd
     .command("vintages <series_id>")
-    .description("Get vintage (revision) dates for a series")
+    .description(t("FRED_VINTAGES_DESC"))
     .option("--json", "Output JSON")
     .action(async (seriesId, opts) => {
         try {
@@ -927,7 +963,7 @@ fredCmd
 // geo/maps
 fredCmd
     .command("geo <series_id>")
-    .description("Get GeoFRED regional data for a series")
+    .description(t("FRED_GEO_DESC"))
     .option("--json", "Output JSON")
     .action(async (seriesId, opts) => {
         try {

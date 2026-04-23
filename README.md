@@ -182,6 +182,37 @@ Get multi-language crypto market news filtered by AI.
      Description Summary...
  ```
  
+ #### 🏦 Federal Reserve Data (`fred`)
+ Access 800,000+ macro economic time series from FRED (Federal Reserve Economic Data).
+ 
+ *   **Usage**: `methodalgo fred [command] [options]`
+ *   **Subcommands**:
+     *   `dashboard`: Full macro overview (Rates, Inflation, Liquidity, Employment, Conditions).
+     *   `recession`: Recession indicator scorecard (6 classic signals based on yield curve, claims, etc.).
+     *   `latest <id>`: Get the latest value for a specific series (e.g., `FEDFUNDS`, `UNRATE`, `CPIAUCSL`).
+     *   `search <query>`: Search for FRED series by keywords.
+     *   `liquidity`: Crypto-relevant net liquidity analysis (Fed Balance Sheet - RRP - TGA).
+ *   **Common Series IDs**:
+     *   `FEDFUNDS`: Federal Funds Effective Rate
+     *   `CPIAUCSL`: Consumer Price Index (CPI)
+     *   `GDP`: Gross Domestic Product
+     *   `UNRATE`: Unemployment Rate
+     *   `WALCL`: Fed Total Assets (Balance Sheet)
+     *   `RRPONTSYD`: Reverse Repurchase Agreements (RRP)
+ 
+ **Example**: `methodalgo fred dashboard`
+ 
+ **💡 Response Preview (latest --json)**
+ ```json
+ {
+   "series_id": "FEDFUNDS",
+   "title": "Federal Funds Effective Rate",
+   "value": 5.33,
+   "date": "2026-04-01",
+   "units": "Percent"
+ }
+ ```
+ 
  #### 🆙 Update Tool (`update`)
 Update `methodalgo-cli` to the latest version.
 
@@ -325,14 +356,12 @@ methodalgo
 ]
 ```
 
-```
- 
  #### 📅 经济日历 (`calendar`)
  获取实时全球经济事件与宏观数据。
  
  *   **用法**: `methodalgo calendar --countries <codes> [options]`
  *   **选项**:
-     *   `-c, --countries <codes>`: **(必填)** 逗号分隔的 ISO 国家代码 (例如: US,EU,JP)。
+     *   `-c, --countries <codes>`: **(必填)** 逗号分隔的 ISO 国家代码 (例如: US,CN)。
      *   `-f, --from <date>`: ISO 起始日期 (默认: 2 天前) (格式: YYYY-MM-DD)。
      *   `-t, --to <date>`: ISO 截止日期 (默认: 2 天后) (格式: YYYY-MM-DD)。
      *   `--json`: 以 JSON 格式输出原始事件数据。
@@ -347,6 +376,37 @@ methodalgo
      实际值: Value | 预测值: Value | 前值: Value
      来源: [名称] [URL]
      事件详情摘要...
+ ```
+ 
+ #### 🏦 宏观经济数据 (`fred`)
+ 接入美联储 FRED 数据库，获取 80 多万条宏观经济时间序列数据。
+ 
+ *   **用法**: `methodalgo fred [command] [options]`
+ *   **核心子命令**:
+     *   `dashboard`: 宏观经济概览看板 (涵盖利率、通胀、流动性、就业、金融环境)。
+     *   `recession`: 衰退指标评分卡 (基于收益率曲线、失业金申请等 6 个经典信号)。
+     *   `latest <id>`: 获取特定指标的最新数值 (如 `FEDFUNDS` 利率, `UNRATE` 失业率)。
+     *   `search <query>`: 通过关键词搜索经济指标。
+     *   `liquidity`: 加密货币相关净流动性分析 (美联储资产负债表 - 逆回购 - TGA)。
+ *   **常用指标 ID**:
+     *   `FEDFUNDS`: 联邦基金有效利率
+     *   `CPIAUCSL`: 消费者价格指数 (CPI)
+     *   `GDP`: 国内生产总值
+     *   `UNRATE`: 失业率
+     *   `WALCL`: 美联储总资产 (资产负债表)
+     *   `RRPONTSYD`: 隔夜逆回购 (RRP)
+ 
+ **示例**: `methodalgo fred dashboard`
+ 
+ **💡 响应预览 (latest --json)**
+ ```json
+ {
+   "series_id": "FEDFUNDS",
+   "title": "Federal Funds Effective Rate",
+   "value": 5.33,
+   "date": "2026-04-01",
+   "units": "百分比"
+ }
  ```
  
  #### 🆙 更新工具 (`update`)
