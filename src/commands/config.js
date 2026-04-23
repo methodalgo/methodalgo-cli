@@ -8,7 +8,8 @@ import { validateApiKey } from "../utils/api.js";
 const API_KEY_MAP = {
     "api-key": "apiKey",
     "lang": "lang",
-    "api-base": "apiBase"
+    "api-base": "apiBase",
+    "fred-api-key": "fredApiKey"
 };
 
 const configCmd = new Command("config")
@@ -20,7 +21,7 @@ configCmd.addHelpText("after", `\n${t("VAL_ALLOWED_KEYS")}`);
 configCmd
     .command("set")
     .description(t("CONFIG_SET_DESC"))
-    .argument("<key>", "Key (api-key, lang, api-base)")
+    .argument("<key>", "Key (api-key, lang, api-base, fred-api-key)")
     .argument("<value>", "Value")
     .action(async (key, value) => {
         if (!API_KEY_MAP[key]) {
@@ -43,6 +44,13 @@ configCmd
             logger.success(t("ONBOARD_SUCCESS"));
         }
 
+        // FRED API Key: just save, no validation needed
+        if (configKey === "fredApiKey") {
+            config.set(configKey, value);
+            logger.success(`FRED API Key saved. Test with: methodalgo fred latest FEDFUNDS`);
+            return;
+        }
+
         config.set(configKey, value);
         logger.success(t("SET_SUCCESS", { key, value }));
     });
@@ -50,7 +58,7 @@ configCmd
 configCmd
     .command("get")
     .description(t("CONFIG_GET_DESC"))
-    .argument("<key>", "Key (api-key, lang, api-base)")
+    .argument("<key>", "Key (api-key, lang, api-base, fred-api-key)")
     .action((key) => {
         if (!API_KEY_MAP[key]) {
             logger.error(t("ERR_INVALID_CONFIG_KEY", { key }));
@@ -62,6 +70,9 @@ configCmd
         const value = config.get(configKey);
         if (configKey === "apiKey" && process.env.METHODALGO_API_KEY) {
             logger.info(t("INFO_USE_ENV_KEY"));
+        }
+        if (configKey === "fredApiKey" && process.env.FRED_API_KEY) {
+            logger.info("Using FRED API Key from environment variable (FRED_API_KEY).");
         }
         if (value) {
             console.log(value);
@@ -77,6 +88,7 @@ configCmd
         const all = config.store;
         const safeData = { ...all };
         if (safeData.apiKey) safeData.apiKey = "********";
+        if (safeData.fredApiKey) safeData.fredApiKey = "********";
         logger.json(safeData);
     });
 

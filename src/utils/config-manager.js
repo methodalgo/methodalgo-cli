@@ -12,6 +12,10 @@ const schema = {
     lang: {
         type: "string",
         default: "en"
+    },
+    fredApiKey: {
+        type: "string",
+        default: ""
     }
 };
 
