@@ -82,7 +82,7 @@ ${chalk.dim("Then run: methodalgo config set fred-api-key <your-key>")}
 // 增加预处理钩子，支持在指令运行前交互式设置 Key
 fredCmd.hook("preAction", async (thisCommand, actionCommand) => {
     // 排除 help 指令
-    if (actionCommand.name() === "help") return;
+    if (actionCommand.name() === "help" || actionCommand.parent.rawArgs.some(arg => arg === "--help" || arg === "-h")) return;
 
     if (!fred.getFredApiKey()) {
         const readline = await import("readline");
@@ -733,8 +733,12 @@ fredCmd
             // 3. Sahm Rule
             if (fetched.UNRATE?.length >= 15) {
                 const obs = [...fetched.UNRATE].reverse(); // asc
-                const recent3m = obs.slice(-3).reduce((a, b) => a + b.value, 0) / 3;
-                const low12m = Math.min(...obs.slice(-12).map(o => o.value));
+                const ma3m = obs.map((_, i, arr) => {
+                    if (i < 2) return null;
+                    return (arr[i].value + arr[i-1].value + arr[i-2].value) / 3;
+                }).filter(v => v !== null);
+                const recent3m = ma3m[ma3m.length - 1];
+                const low12m = Math.min(...ma3m.slice(-12));
                 const sahm = recent3m - low12m;
                 const [status, emoji] = sahm >= 0.5 ? ["TRIGGERED", "❌"] : sahm >= 0.3 ? ["ELEVATED", "⚠️"] : ["CLEAR", "✅"];
                 signals.push({ name: "Sahm Rule", status, emoji, reading: `${sahm.toFixed(2)}pp (3m avg - 12m low)` });

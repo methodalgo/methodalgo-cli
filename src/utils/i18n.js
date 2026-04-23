@@ -173,6 +173,18 @@ ${chalk.cyan("- report")}: ${chalk.gray("Institutional research reports.")}`,
         FRED_UNITS: "Units",
         FRED_FREQ: "Frequency",
         FRED_OBS: "Observations",
+        FRED_TREND_UP: "Up",
+        FRED_TREND_DOWN: "Down",
+        FRED_COL_SIGNAL: "Signal",
+        FRED_COL_STATUS: "Status",
+        FRED_COL_READING: "Reading",
+        FRED_SEC_RATES: "Rates & Monetary Policy",
+        FRED_SEC_INFLATION: "Inflation Data",
+        FRED_SEC_EMPLOYMENT: "Employment Data",
+        FRED_SEC_FINANCE: "Financial Conditions",
+        FRED_DASHBOARD_TITLE: "Macro Economic Dashboard",
+        FRED_STATUS_WARNING: "Warning",
+        FRED_STATUS_DANGER: "Danger",
         FRED_HELP_DATA_TYPES: "\nCommon Data Categories:\n  - Interest Rates (FEDFUNDS, GS10, MORTGAGE30US)\n  - Inflation & Prices (CPIAUCSL, PCE, PPIACO)\n  - GDP & Growth (GDP, GDPC1)\n  - Employment (UNRATE, PAYEMS)\n  - Money & Liquidity (M2SL, WALCL)",
         FRED_HELP_EXAMPLES: "\nExamples:\n  $ methodalgo fred latest FEDFUNDS\n  $ methodalgo fred search \"gold price\"\n  $ methodalgo fred dashboard\n  $ methodalgo fred liquidity --m2",
     },
@@ -321,12 +333,13 @@ ${chalk.yellow("- report")}: ${chalk.gray("机构研究报告")}`,
         OPT_FRED_ORDER: "排序字段 (search_rank, popularity 等)",
         OPT_FRED_TAIL: "显示最后 N 条记录",
         OPT_FRED_LOOKBACK: "回溯窗口 (如: 5y, 24m, 365d)",
-        FRED_SEARCH_RESULTS: "搜索结果: \"{query}\" (共 {count} 条)",
+        FRED_SEARCH_RESULTS: "搜索结果: "{query}" (共 {count} 条)",
         FRED_LATEST_VAL: "最新数值",
         FRED_DATE: "日期",
         FRED_UNITS: "单位",
         FRED_FREQ: "频率",
         FRED_OBS: "观测值数量",
+        FRED_TREND_UP: "上升",
         FRED_TREND_DOWN: "下降",
         FRED_COL_SIGNAL: "信号",
         FRED_COL_STATUS: "状态",
@@ -335,8 +348,19 @@ ${chalk.yellow("- report")}: ${chalk.gray("机构研究报告")}`,
         FRED_SEC_INFLATION: "通胀数据",
         FRED_SEC_EMPLOYMENT: "就业数据",
         FRED_SEC_FINANCE: "金融环境",
-        FRED_HELP_DATA_TYPES: "\n常用数据类别：\n  - 利率 (FEDFUNDS, GS10, MORTGAGE30US)\n  - 通胀与物价 (CPIAUCSL, PCE, PPIACO)\n  - GDP 与增长 (GDP, GDPC1)\n  - 就业情况 (UNRATE, PAYEMS)\n  - 货币与流动性 (M2SL, WALCL)",
-        FRED_HELP_EXAMPLES: "\n示例：\n  $ methodalgo fred latest FEDFUNDS\n  $ methodalgo fred search \"黄金价格\"\n  $ methodalgo fred dashboard\n  $ methodalgo fred liquidity --m2",
+        FRED_HELP_DATA_TYPES: "
+常用数据类别：
+  - 利率 (FEDFUNDS, GS10, MORTGAGE30US)
+  - 通胀与物价 (CPIAUCSL, PCE, PPIACO)
+  - GDP 与增长 (GDP, GDPC1)
+  - 就业情况 (UNRATE, PAYEMS)
+  - 货币与流动性 (M2SL, WALCL)",
+        FRED_HELP_EXAMPLES: "
+示例：
+  $ methodalgo fred latest FEDFUNDS
+  $ methodalgo fred search "黄金价格"
+  $ methodalgo fred dashboard
+  $ methodalgo fred liquidity --m2",
         FRED_DASHBOARD_TITLE: "宏观经济看板",
         FRED_RECESSION_TITLE: "衰退指标评分卡",
         FRED_COMPARE_TITLE: "指标对比分析",
@@ -347,10 +371,7 @@ ${chalk.yellow("- report")}: ${chalk.gray("机构研究报告")}`,
         FRED_ASSESS_HIGH: "评估: 衰退概率极高",
         FRED_STATUS_NORMAL: "正常",
         FRED_STATUS_WARNING: "警示",
-        FRED_STATUS_DANGER: "危险",
-        FRED_TREND_UP: "上升",
-        FRED_TREND_DOWN: "下降",
-    }
+        FRED_STATUS_DANGER: "危险"    }
 };
 
 export function getLang() {
