@@ -18,7 +18,7 @@ fi
 echo "📦 准备发布版本: v$CLEAN_VERSION"
 
 # 1. 运行 lint 或测试 (可选，确保发布质量)
-# npm run lint
+npm test
 
 # 3. Git 提交
 git add .

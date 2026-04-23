@@ -112,26 +112,22 @@ Get a real-time TradingView chart snapshot for a specific symbol.
 ```
 
 #### 📡 Trading Signals (`signals`)
-Fetch the latest Alpha signals or market indices from specified channels.
+Fetch Alpha signals or market indices. Optimized for real-time tracking.
 
 *   **Usage**: `methodalgo signals [channel] [options]`
-*   **Popular Channels**:
-    *   `etf-tracker`: Real-time daily inflow/outflow details for BTC/ETH ETFs.
-    *   `market-today`: Daily market summary (Fear & Greed Index, Altcoin Season Index, etc.).
-    *   `golden-pit-mtf`: High-quality low-frequency pattern recognition signals.
+*   **Key Channels**:
+    *   `breakout-htf/mtf`: 100-candle rolling window high/low breakout alerts.
+    *   `exhaustion-buyer/seller`: Reversal signals based on Grim Reaper Heatmap.
+    *   `etf-tracker`: Real-time daily inflow/outflow details for BTC/ETH/SOL ETFs.
+    *   `market-today`: Daily summary (Fear & Greed, Alt Season Index).
+    *   `golden-pit-mtf`: "Smart Cloud" pump/dump pattern recognition.
+    *   `token-unlock`: Countdown and details for upcoming token unlocks.
 *   **Options**:
-    *   `-l, --limit <number>`: Number of signals to fetch (Default: "10")
+    *   `-l, --limit <number>`: Number of signals to fetch (Default: "10").
+    *   `-a, --after <id>`: Fetch signals after a specific Message ID (for incremental sync).
     *   `--json`: Output raw signals array in JSON format.
 
-**Example**: `methodalgo signals etf-tracker --limit 1`
-
-**💡 Response Preview**
-- **List Mode**:
-```text
-[Index] Title | Content Summary (Publish Time)
-    > Detailed data (e.g., ETF net inflow)
-    Original: [URL]
-```
+**Example**: `methodalgo signals breakout-mtf --limit 5`
 
 #### 📰 Market News (`news`)
 Get multi-language crypto market news filtered by AI.
@@ -158,29 +154,17 @@ Get multi-language crypto market news filtered by AI.
 ]
 ```
 
-```
- 
- #### 📅 Economic Calendar (`calendar`)
- Get real-time economic events and macro data.
+#### 📅 Economic Calendar (`calendar`)
+ Get real-time global economic events and macro data.
  
  *   **Usage**: `methodalgo calendar --countries <codes> [options]`
  *   **Options**:
-     *   `-c, --countries <codes>`: **(Required)** Comma-separated ISO country codes (e.g., US,EU,JP).
-     *   `-f, --from <date>`: ISO start date (Default: 2 days ago) (Format: YYYY-MM-DD).
-     *   `-t, --to <date>`: ISO end date (Default: 2 days later) (Format: YYYY-MM-DD).
+     *   `-c, --countries <codes>`: **(Required)** Comma-separated ISO codes (e.g., `US,EU,JP`).
+     *   `-f, --from <date>`: Start date (YYYY-MM-DD). Default: 2 days ago.
+     *   `-t, --to <date>`: End date (YYYY-MM-DD). Default: 2 days later.
      *   `--json`: Output raw event data in JSON format.
  
- **Example**: `methodalgo calendar --countries US,EU`
- 
- **💡 Response Preview**
- - **List Mode**:
- ```text
- [Index] Date Time [Importance] Country
-     Event Title
-     Actual: Value | Forecast: Value | Previous: Value
-     Source: [Name] [URL]
-     Description Summary...
- ```
+ **Example**: `methodalgo calendar --countries US,CN`
  
  #### 🏦 Federal Reserve Data (`fred`)
  Access 800,000+ macro economic time series from FRED (Federal Reserve Economic Data).
@@ -189,29 +173,25 @@ Get multi-language crypto market news filtered by AI.
  *   **Subcommands**:
      *   `dashboard`: Full macro overview (Rates, Inflation, Liquidity, Employment, Conditions).
      *   `recession`: Recession indicator scorecard (6 classic signals based on yield curve, claims, etc.).
-     *   `latest <id>`: Get the latest value for a specific series (e.g., `FEDFUNDS`, `UNRATE`, `CPIAUCSL`).
-     *   `search <query>`: Search for FRED series by keywords.
      *   `liquidity`: Crypto-relevant net liquidity analysis (Fed Balance Sheet - RRP - TGA).
+     *   `latest <id>`: Get the latest value for a specific series.
+     *   `search <query>`: Search for FRED series by keywords.
+     *   `compare <ids>`: Compare multiple series (e.g., `methodalgo fred compare GS10,GS2`).
+     *   `changes <id>`: Show recent changes and trends for a series.
+     *   `spread <id1,id2>`: Compute the difference between two series (e.g., 10Y-2Y spread).
+     *   `zscore <id>`: Statistical Z-score and percentile analysis vs historical data.
+ *   **Options**:
+     *   `-b, --lookback <window>`: Lookback window (e.g., `5y`, `24m`, `365d`).
+     *   `-n, --tail <number>`: Show last N observations.
  *   **Common Series IDs**:
-     *   `FEDFUNDS`: Federal Funds Effective Rate
-     *   `CPIAUCSL`: Consumer Price Index (CPI)
-     *   `GDP`: Gross Domestic Product
-     *   `UNRATE`: Unemployment Rate
-     *   `WALCL`: Fed Total Assets (Balance Sheet)
-     *   `RRPONTSYD`: Reverse Repurchase Agreements (RRP)
+     *   `FEDFUNDS`: Fed Funds Rate | `CPIAUCSL`: Consumer Price Index (CPI)
+     *   `WALCL`: Fed Total Assets | `RRPONTSYD`: Reverse Repo (RRP)
+     *   `T10Y2Y`: 10-Year vs 2-Year Treasury Spread
  
- **Example**: `methodalgo fred dashboard`
- 
- **💡 Response Preview (latest --json)**
- ```json
- {
-   "series_id": "FEDFUNDS",
-   "title": "Federal Funds Effective Rate",
-   "value": 5.33,
-   "date": "2026-04-01",
-   "units": "Percent"
- }
- ```
+ **Example**: `methodalgo fred liquidity --m2`
+
+ **💡 Pro Tip**: You can get your own FRED API Key from [St. Louis Fed](https://fred.stlouisfed.org/docs/api/api_key.html) and set it via:
+ `methodalgo config set fred-api-key <your-key>`
  
  #### 🆙 Update Tool (`update`)
 Update `methodalgo-cli` to the latest version.
@@ -310,26 +290,22 @@ methodalgo
 ```
 
 #### 📡 交易信号 (`signals`)
-从指定频道获取最新的 Alpha 信号或市场指标。
+获取 Alpha 信号或市场指标。针对实时追踪进行了深度优化。
 
 *   **用法**: `methodalgo signals [channel] [options]`
-*   **热门频道**:
-    *   `etf-tracker`: 监控 BTC/ETH ETF 每日实时资金流入/流出详情。
-    *   `market-today`: 每日市场全景总结（包含恐惧贪婪指数、山寨季指数等）。
-    *   `golden-pit-mtf`: 低频高质量模式识别信号。
+*   **核心频道**:
+    *   `breakout-htf/mtf`: 100 根 K 线滚动窗口的高/低点突破提醒。
+    *   `exhaustion-buyer/seller`: 基于死神清算热力图的反转信号。
+    *   `etf-tracker`: BTC/ETH/SOL ETF 每日实时资金流入/流出详情。
+    *   `market-today`: 每日总结（恐惧贪婪指数、山寨季指数）。
+    *   `golden-pit-mtf`: "Smart Cloud" 模式识别（拉升/砸盘预警）。
+    *   `token-unlock`: 即将到来的代币解锁倒计时与详情。
 *   **选项**:
-    *   `-l, --limit <number>`: 获取信号的数量 (默认: "10")
+    *   `-l, --limit <number>`: 获取信号的数量 (默认: "10")。
+    *   `-a, --after <id>`: 获取指定消息 ID 之后的信号 (用于增量同步)。
     *   `--json`: 以 JSON 格式输出原始信号数组。
 
-**示例**: `methodalgo signals etf-tracker --limit 1`
-
-**💡 响应预览**
-- **标准模式**:
-```text
-[序号] 标题 | 核心内容摘要 (发布时间)
-    > 详细数据详情 (如 ETF 净流入额)
-    查看原文: [URL]
-```
+**示例**: `methodalgo signals breakout-mtf --limit 5`
 
 #### 📰 市场新闻 (`news`)
 获取经过 AI 分选的多语言加密货币市场新闻。
@@ -361,22 +337,12 @@ methodalgo
  
  *   **用法**: `methodalgo calendar --countries <codes> [options]`
  *   **选项**:
-     *   `-c, --countries <codes>`: **(必填)** 逗号分隔的 ISO 国家代码 (例如: US,CN)。
-     *   `-f, --from <date>`: ISO 起始日期 (默认: 2 天前) (格式: YYYY-MM-DD)。
-     *   `-t, --to <date>`: ISO 截止日期 (默认: 2 天后) (格式: YYYY-MM-DD)。
+     *   `-c, --countries <codes>`: **(必填)** 逗号分隔的 ISO 国家代码 (例如: `US,EU,JP`)。
+     *   `-f, --from <date>`: 起始日期 (YYYY-MM-DD)。默认: 2 天前。
+     *   `-t, --to <date>`: 截止日期 (YYYY-MM-DD)。默认: 2 天后。
      *   `--json`: 以 JSON 格式输出原始事件数据。
  
  **示例**: `methodalgo calendar --countries US,CN`
- 
- **💡 响应预览**
- - **标准模式**:
- ```text
- [序号] 日期 时间 [重要性] 国家
-     事件标题
-     实际值: Value | 预测值: Value | 前值: Value
-     来源: [名称] [URL]
-     事件详情摘要...
- ```
  
  #### 🏦 宏观经济数据 (`fred`)
  接入美联储 FRED 数据库，获取 80 多万条宏观经济时间序列数据。
@@ -385,29 +351,25 @@ methodalgo
  *   **核心子命令**:
      *   `dashboard`: 宏观经济概览看板 (涵盖利率、通胀、流动性、就业、金融环境)。
      *   `recession`: 衰退指标评分卡 (基于收益率曲线、失业金申请等 6 个经典信号)。
-     *   `latest <id>`: 获取特定指标的最新数值 (如 `FEDFUNDS` 利率, `UNRATE` 失业率)。
-     *   `search <query>`: 通过关键词搜索经济指标。
      *   `liquidity`: 加密货币相关净流动性分析 (美联储资产负债表 - 逆回购 - TGA)。
+     *   `latest <id>`: 获取特定指标的最新数值。
+     *   `search <query>`: 通过关键词搜索经济指标。
+     *   `compare <ids>`: 对比多个指标 (例如: `methodalgo fred compare GS10,GS2`)。
+     *   `changes <id>`: 查看指标的近期变化和趋势。
+     *   `spread <id1,id2>`: 计算两个指标之间的利差 (如 10Y-2Y 利差)。
+     *   `zscore <id>`: 统计学 Z-Score 分析及当前值在历史中的百分位。
+ *   **常用选项**:
+     *   `-b, --lookback <window>`: 回溯窗口 (如: `5y`, `24m`, `365d`)。
+     *   `-n, --tail <number>`: 显示最后 N 条记录。
  *   **常用指标 ID**:
-     *   `FEDFUNDS`: 联邦基金有效利率
-     *   `CPIAUCSL`: 消费者价格指数 (CPI)
-     *   `GDP`: 国内生产总值
-     *   `UNRATE`: 失业率
-     *   `WALCL`: 美联储总资产 (资产负债表)
-     *   `RRPONTSYD`: 隔夜逆回购 (RRP)
+     *   `FEDFUNDS`: 联邦基金利率 | `CPIAUCSL`: 消费者价格指数 (CPI)
+     *   `WALCL`: 美联储总资产 | `RRPONTSYD`: 隔夜逆回购 (RRP)
+     *   `T10Y2Y`: 10年期与2年期美债利差
  
  **示例**: `methodalgo fred dashboard`
  
- **💡 响应预览 (latest --json)**
- ```json
- {
-   "series_id": "FEDFUNDS",
-   "title": "Federal Funds Effective Rate",
-   "value": 5.33,
-   "date": "2026-04-01",
-   "units": "百分比"
- }
- ```
+ **💡 专业提示**: 您可以从 [圣路易斯联储官网](https://fred.stlouisfed.org/docs/api/api_key.html) 获取您自己的 FRED API Key，并通过以下指令设置：
+ `methodalgo config set fred-api-key <your-key>`
  
  #### 🆙 更新工具 (`update`)
 将 `methodalgo-cli` 更新至最新版本。
