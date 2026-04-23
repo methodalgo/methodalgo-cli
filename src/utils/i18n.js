@@ -348,19 +348,8 @@ ${chalk.yellow("- report")}: ${chalk.gray("机构研究报告")}`,
         FRED_SEC_INFLATION: "通胀数据",
         FRED_SEC_EMPLOYMENT: "就业数据",
         FRED_SEC_FINANCE: "金融环境",
-        FRED_HELP_DATA_TYPES: "
-常用数据类别：
-  - 利率 (FEDFUNDS, GS10, MORTGAGE30US)
-  - 通胀与物价 (CPIAUCSL, PCE, PPIACO)
-  - GDP 与增长 (GDP, GDPC1)
-  - 就业情况 (UNRATE, PAYEMS)
-  - 货币与流动性 (M2SL, WALCL)",
-        FRED_HELP_EXAMPLES: "
-示例：
-  $ methodalgo fred latest FEDFUNDS
-  $ methodalgo fred search "黄金价格"
-  $ methodalgo fred dashboard
-  $ methodalgo fred liquidity --m2",
+        FRED_HELP_DATA_TYPES: "\n常用数据类别：\n  - 利率 (FEDFUNDS, GS10, MORTGAGE30US)\n  - 通胀与物价 (CPIAUCSL, PCE, PPIACO)\n  - GDP 与增长 (GDP, GDPC1)\n  - 就业情况 (UNRATE, PAYEMS)\n  - 货币与流动性 (M2SL, WALCL)",
+        FRED_HELP_EXAMPLES: "\n示例：\n  $ methodalgo fred latest FEDFUNDS\n  $ methodalgo fred search \"黄金价格\"\n  $ methodalgo fred dashboard\n  $ methodalgo fred liquidity --m2",
         FRED_DASHBOARD_TITLE: "宏观经济看板",
         FRED_RECESSION_TITLE: "衰退指标评分卡",
         FRED_COMPARE_TITLE: "指标对比分析",
