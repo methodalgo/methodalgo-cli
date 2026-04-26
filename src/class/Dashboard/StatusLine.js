@@ -5,15 +5,28 @@ import { gradientText } from "../../utils/dashboard-utils.js";
 
 const h = React.createElement;
 
-export const StatusLine = ({ statusInfo }) => (
-    h(Box, { borderStyle: "single", borderColor: "red", height: 3, paddingX: 1, alignItems: "center" },
-        h(Text, null, gradientText("MethodAlgo Dashboard", [255, 0, 0], [255, 255, 255])),
+const CACHED_GRADIENT = gradientText("MethodAlgo Dashboard", [255, 0, 0], [255, 255, 255]);
+
+export const StatusLine = ({ statusInfo }) => {
+    const hints = t("TUI_HINTS");
+    const safeStatus = statusInfo || {};
+    const mem = safeStatus.mem ?? "0";
+    
+    return h(Box, { 
+        borderStyle: "single", 
+        borderColor: "red", 
+        height: 3, 
+        paddingX: 1, 
+        alignItems: "center",
+        overflow: "hidden"
+    },
+        h(Text, null, CACHED_GRADIENT),
         h(Text, { color: "gray" }, " | "),
-        h(Text, { color: "cyan" }, `📡 Updated: ${statusInfo.time}`),
+        h(Text, { color: "cyan" }, `📡 Updated: ${safeStatus.time || "--"}`),
         h(Text, { color: "gray" }, " | Mem: "),
-        h(Text, null, `${statusInfo.mem} MB`),
+        h(Text, null, `${mem} MB`),
         h(Text, { color: "gray" }, " | "),
-        h(Text, { color: "yellow" }, t("TUI_HINTS")),
-        statusInfo.error && h(Text, { color: "red", wrap: "truncate" }, ` | ${statusInfo.error}`)
-    )
-);
+        h(Text, { color: "yellow" }, hints),
+        safeStatus.error && h(Text, { color: "red", wrap: "truncate" }, ` | ${safeStatus.error}`)
+    );
+};

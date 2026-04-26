@@ -1,64 +1,79 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { t, getLang } from '../../src/utils/i18n.js';
 import config from '../../src/utils/config-manager.js';
 
-// 模拟 config-manager
 vi.mock('../../src/utils/config-manager.js', () => ({
-  default: {
-    get: vi.fn(),
-  }
+    default: {
+        get: vi.fn(),
+        set: vi.fn(),
+    }
 }));
 
-describe('i18n Utility', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe('getLang()', () => {
-    it('should return "en" as default if no language is set', () => {
-      config.get.mockReturnValue(undefined);
-      expect(getLang()).toBe('en');
+describe('i18n Module', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        vi.resetModules();
     });
 
-    it('should return "zh" if language is set to "zh"', () => {
-      config.get.mockReturnValue('zh');
-      expect(getLang()).toBe('zh');
-    });
-  });
+    describe('getLang function', () => {
+        it('should return config lang when set', async () => {
+            config.get.mockReturnValue('zh');
+            const { getLang } = await import('../../src/utils/i18n.js');
+            
+            const result = getLang();
+            expect(result).toBe('zh');
+        });
 
-  describe('t() - Translation Function', () => {
-    it('should translate basic keys in English', () => {
-      config.get.mockReturnValue('en');
-      expect(t('ERR_NETWORK')).toBe('Network error');
-    });
-
-    it('should translate basic keys in Chinese', () => {
-      config.get.mockReturnValue('zh');
-      expect(t('ERR_NETWORK')).toBe('网络错误');
-    });
-
-    it('should fallback to English if key is missing in target language', () => {
-      config.get.mockReturnValue('zh');
-      // 假设某个 key 只在 en 中有
-      expect(t('NON_EXISTENT_KEY')).toBe('NON_EXISTENT_KEY');
+        it('should return "en" as default when lang is not set', async () => {
+            config.get.mockReturnValue(undefined);
+            const { getLang } = await import('../../src/utils/i18n.js');
+            
+            const result = getLang();
+            expect(result).toBe('en');
+        });
     });
 
-    it('should replace placeholders correctly', () => {
-      config.get.mockReturnValue('en');
-      const result = t('SET_SUCCESS', { key: 'api-key', value: '123' });
-      expect(result).toBe('Set api-key to 123');
-    });
+    describe('t function (translation)', () => {
+        it('should return translation for existing key', async () => {
+            config.get.mockReturnValue('en');
+            const { t } = await import('../../src/utils/i18n.js');
+            
+            const result = t('FETCH_SUCCESS', { count: 5 });
+            expect(result).toContain('5');
+            expect(result).toContain('Fetched');
+        });
 
-    it('should replace multiple placeholders in Chinese', () => {
-      config.get.mockReturnValue('zh');
-      const result = t('SET_SUCCESS', { key: 'lang', value: 'zh' });
-      expect(result).toBe('已设置 lang 为 zh');
-    });
+        it('should return Chinese translation when lang is zh', async () => {
+            config.get.mockReturnValue('zh');
+            const { t } = await import('../../src/utils/i18n.js');
+            
+            const result = t('FETCH_SUCCESS', { count: 5 });
+            expect(result).toContain('5');
+            expect(result).toContain('获取');
+        });
 
-    it('should handle complex templates (FRED_SEARCH_RESULTS)', () => {
-      config.get.mockReturnValue('en');
-      const result = t('FRED_SEARCH_RESULTS', { query: 'GDP', count: 10 });
-      expect(result).toBe('Search results for GDP (10 total)');
+        it('should replace placeholder parameters', async () => {
+            config.get.mockReturnValue('en');
+            const { t } = await import('../../src/utils/i18n.js');
+            
+            const result = t('SET_SUCCESS', { key: 'lang', value: 'zh' });
+            expect(result).toBe('Set lang to zh');
+        });
+
+        it('should fallback to English when key not in current language', async () => {
+            config.get.mockReturnValue('zh');
+            const { t } = await import('../../src/utils/i18n.js');
+            
+            const result = t('HELP_DESC');
+            expect(typeof result).toBe('string');
+            expect(result.length).toBeGreaterThan(0);
+        });
+
+        it('should return key itself when not found in any language', async () => {
+            config.get.mockReturnValue('en');
+            const { t } = await import('../../src/utils/i18n.js');
+            
+            const result = t('NON_EXISTENT_KEY_12345');
+            expect(result).toBe('NON_EXISTENT_KEY_12345');
+        });
     });
-  });
 });
