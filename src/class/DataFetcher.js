@@ -277,9 +277,8 @@ function transformFredData(data, lang) {
         for (const [key, val] of Object.entries(data.rates)) {
             if (val && val.value !== undefined) {
                 const arrow = val.change > 0.001 ? " ↑" : val.change < -0.001 ? " ↓" : "";
-                const dateStr = val.date ? ` [${val.date}]` : "";
                 items.push({
-                    displayTitle: `${val.label}: ${val.value.toFixed(2)}${val.unit || ""}${arrow}${dateStr}`,
+                    displayTitle: `${val.label}: ${val.value.toFixed(2)}${val.unit || ""}${arrow}`,
                     timestamp: val.date || new Date().toISOString()
                 });
             }
@@ -290,10 +289,9 @@ function transformFredData(data, lang) {
         for (const [key, val] of Object.entries(data.market)) {
             if (val && val.value !== undefined) {
                 const arrow = val.change > 0.01 ? " ↑" : val.change < -0.01 ? " ↓" : "";
-                const dateStr = val.date ? ` [${val.date}]` : "";
                 let valueStr = val.formatted || `${val.value.toFixed(2)}${val.unit || ""}`;
                 items.push({
-                    displayTitle: `${val.label}: ${valueStr}${arrow}${dateStr}`,
+                    displayTitle: `${val.label}: ${valueStr}${arrow}`,
                     timestamp: val.date || new Date().toISOString()
                 });
             }
@@ -303,9 +301,8 @@ function transformFredData(data, lang) {
     if (data.liquidity) {
         for (const [key, val] of Object.entries(data.liquidity)) {
             if (val && val.value !== undefined) {
-                const dateStr = val.date ? ` [${val.date}]` : "";
                 items.push({
-                    displayTitle: `${val.label}: ${val.formatted || val.value}${dateStr}`,
+                    displayTitle: `${val.label}: ${val.formatted || val.value}`,
                     timestamp: val.date || new Date().toISOString()
                 });
             }
@@ -316,9 +313,8 @@ function transformFredData(data, lang) {
         for (const [key, val] of Object.entries(data.other)) {
             if (val && val.value !== undefined) {
                 const arrow = val.change > 0.001 ? " ↑" : val.change < -0.001 ? " ↓" : "";
-                const dateStr = val.date ? ` [${val.date}]` : "";
                 items.push({
-                    displayTitle: `${val.label}: ${val.value.toFixed(2)}${val.unit || ""}${arrow}${dateStr}`,
+                    displayTitle: `${val.label}: ${val.value.toFixed(2)}${val.unit || ""}${arrow}`,
                     timestamp: val.date || new Date().toISOString()
                 });
             }
@@ -742,11 +738,16 @@ export class DataFetcher {
             const timer = setTimeout(async () => {
                 try {
                     const result = await this.fetch(panelType, false);
-                    if (onUpdate && result && !result.fromCache) {
-                        onUpdate(panelType, result);
+                    if (onUpdate && result) {
+                        if (!result.fromCache || result.error) {
+                            onUpdate(panelType, result);
+                        }
                     }
                 } catch (e) {
                     console.debug(`[DataFetcher] Auto-refresh error for ${panelType}:`, e.message);
+                    if (onUpdate) {
+                        onUpdate(panelType, { error: e.message });
+                    }
                 } finally {
                     if (this.timers.get(panelType) === timer) {
                         scheduleNext(panelType, interval);

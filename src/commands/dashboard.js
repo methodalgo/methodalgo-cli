@@ -116,20 +116,25 @@ const Dashboard = () => {
             const { results, errors } = await dataFetcherRef.current.fetchMultiple(enabledPanels, false);
             
             const newCaches = {};
+            let firstError = null;
+            
             for (const [type, result] of Object.entries(results)) {
                 if (result?.data) {
                     newCaches[type] = result.data;
+                }
+                if (result?.error && !firstError) {
+                    firstError = result.error;
                 }
             }
             
             setCaches(newCaches);
             
             const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
-            const firstError = Object.values(errors)[0];
+            const fetchError = Object.values(errors)[0];
             setStatusInfo({
                 time: new Date().toLocaleTimeString(),
                 mem,
-                error: firstError?.message || null
+                error: firstError || fetchError?.message || null
             });
             
         } catch (e) {
@@ -143,6 +148,17 @@ const Dashboard = () => {
         if (result?.data) {
             setCaches(prev => ({ ...prev, [panelType]: result.data }));
         }
+        
+        const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
+        setStatusInfo(prev => {
+            if (result?.error) {
+                return { ...prev, time: new Date().toLocaleTimeString(), mem, error: result.error };
+            }
+            if (result?.data && !result.stale) {
+                return { ...prev, time: new Date().toLocaleTimeString(), mem, error: null };
+            }
+            return { ...prev, mem };
+        });
     }, []);
 
     useEffect(() => {
@@ -181,19 +197,24 @@ const Dashboard = () => {
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
         dataFetcherRef.current.fetchMultiple(enabledPanels, true).then(({ results, errors }) => {
             const newCaches = {};
+            let firstError = null;
+            
             for (const [type, result] of Object.entries(results)) {
                 if (result?.data) {
                     newCaches[type] = result.data;
+                }
+                if (result?.error && !firstError) {
+                    firstError = result.error;
                 }
             }
             setCaches(newCaches);
             
             const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
-            const firstError = Object.values(errors)[0];
+            const fetchError = Object.values(errors)[0];
             setStatusInfo({
                 time: new Date().toLocaleTimeString(),
                 mem,
-                error: firstError?.message || null
+                error: firstError || fetchError?.message || null
             });
         });
     }, []);

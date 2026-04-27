@@ -10,7 +10,24 @@ const CACHED_GRADIENT = gradientText("MethodAlgo Dashboard", [255, 0, 0], [255, 
 export const StatusLine = ({ statusInfo }) => {
     const hints = t("TUI_HINTS");
     const safeStatus = statusInfo || {};
-    const mem = safeStatus.mem ?? "0";
+    const mem = safeStatus.mem && safeStatus.mem.trim() !== "" ? safeStatus.mem : "0";
+    
+    const fixedContent = [
+        h(Text, { key: "title", flexShrink: 0 }, CACHED_GRADIENT),
+        h(Text, { key: "sep1", color: "gray", flexShrink: 0 }, " | "),
+        h(Text, { key: "updated", color: "cyan", flexShrink: 0 }, `📡 Updated: ${safeStatus.time || "--"}`),
+        h(Text, { key: "sep2", color: "gray", flexShrink: 0 }, " | Mem: "),
+        h(Text, { key: "mem", flexShrink: 0 }, `${mem} MB`)
+    ];
+    
+    const flexibleContent = [
+        h(Text, { key: "sep3", color: "gray", flexShrink: 1 }, " | "),
+        h(Text, { key: "hints", color: "yellow", wrap: "truncate", flexShrink: 2 }, hints)
+    ];
+    
+    if (safeStatus.error) {
+        flexibleContent.push(h(Text, { key: "error", color: "red", wrap: "truncate", flexShrink: 2 }, ` | ${safeStatus.error}`));
+    }
     
     return h(Box, { 
         borderStyle: "single", 
@@ -20,13 +37,11 @@ export const StatusLine = ({ statusInfo }) => {
         alignItems: "center",
         overflow: "hidden"
     },
-        h(Text, null, CACHED_GRADIENT),
-        h(Text, { color: "gray" }, " | "),
-        h(Text, { color: "cyan" }, `📡 Updated: ${safeStatus.time || "--"}`),
-        h(Text, { color: "gray" }, " | Mem: "),
-        h(Text, null, `${mem} MB`),
-        h(Text, { color: "gray" }, " | "),
-        h(Text, { color: "yellow" }, hints),
-        safeStatus.error && h(Text, { color: "red", wrap: "truncate" }, ` | ${safeStatus.error}`)
+        h(Box, { flexShrink: 0, flexDirection: "row", alignItems: "center" },
+            ...fixedContent
+        ),
+        h(Box, { flexShrink: 1, flexDirection: "row", alignItems: "center", minWidth: 0, overflow: "hidden" },
+            ...flexibleContent
+        )
     );
 };

@@ -40,14 +40,18 @@ const THEME_OPTIONS = [
 ];
 
 const REFRESH_OPTIONS = [
-    { value: 5000, label: "5 seconds" },
-    { value: 10000, label: "10 seconds" },
-    { value: 15000, label: "15 seconds" },
-    { value: 30000, label: "30 seconds" },
     { value: 60000, label: "1 minute" },
     { value: 300000, label: "5 minutes" },
     { value: 600000, label: "10 minutes" },
     { value: 3600000, label: "1 hour" }
+];
+
+const CLOCK_REFRESH_OPTIONS = [
+    { value: 1000, label: "1 second" },
+    { value: 5000, label: "5 seconds" },
+    { value: 10000, label: "10 seconds" },
+    { value: 30000, label: "30 seconds" },
+    { value: 60000, label: "1 minute" }
 ];
 
 const TICKER_SPEED_OPTIONS = [
@@ -178,12 +182,17 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         if (key.leftArrow || key.rightArrow) {
             const panel = panels[selectedPanel];
             if (panel) {
-                const currentIdx = REFRESH_OPTIONS.findIndex(o => o.value === panel.refreshInterval);
+                const options = panel.type === "clock" ? CLOCK_REFRESH_OPTIONS : REFRESH_OPTIONS;
+                let currentIdx = options.findIndex(o => o.value === panel.refreshInterval);
+                if (currentIdx === -1) {
+                    currentIdx = options.findIndex(o => o.value >= panel.refreshInterval);
+                    if (currentIdx === -1) currentIdx = options.length - 1;
+                }
                 const nextIdx = key.rightArrow 
-                    ? Math.min(REFRESH_OPTIONS.length - 1, currentIdx + 1)
+                    ? Math.min(options.length - 1, currentIdx + 1)
                     : Math.max(0, currentIdx - 1);
-                if (REFRESH_OPTIONS[nextIdx]) {
-                    updatePanels(panel.type, { refreshInterval: REFRESH_OPTIONS[nextIdx].value });
+                if (options[nextIdx]) {
+                    updatePanels(panel.type, { refreshInterval: options[nextIdx].value });
                 }
             }
             return;
@@ -325,7 +334,8 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         for (let i = 0; i < Math.min(CONTENT_ROWS - 3, panels.length); i++) {
             const panel = panels[i];
             const isSelected = i === selectedPanel;
-            const refreshLabel = REFRESH_OPTIONS.find(o => o.value === panel.refreshInterval)?.label || "Custom";
+            const options = panel.type === "clock" ? CLOCK_REFRESH_OPTIONS : REFRESH_OPTIONS;
+            const refreshLabel = options.find(o => o.value === panel.refreshInterval)?.label || "Custom";
 
             items.push(h(Box, { 
                 key: i, 

@@ -13,7 +13,7 @@ const DEFAULT_DASHBOARD_PANELS = {
     marketToday: { enabled: true, column: 3, order: 2, refreshInterval: 600000, maxVisible: null },
     tokenUnlock: { enabled: true, column: 3, order: 3, refreshInterval: 600000, maxVisible: null },
     fredDashboard: { enabled: false, column: 3, order: 4, refreshInterval: 3600000, maxVisible: null },
-    priceTicker: { enabled: false, column: 3, order: 5, refreshInterval: 30000, maxVisible: null },
+    priceTicker: { enabled: false, column: 3, order: 5, refreshInterval: 60000, maxVisible: null },
     economicCalendar: { enabled: false, column: 3, order: 6, refreshInterval: 3600000, maxVisible: null }
 };
 
