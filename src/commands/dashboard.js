@@ -9,6 +9,7 @@ import { LoadingScreen } from "../class/Dashboard/LoadingScreen.js";
 import { StatusLine } from "../class/Dashboard/StatusLine.js";
 import { TickerBar } from "../class/Dashboard/TickerBar.js";
 import { SettingsDialog } from "../class/Dashboard/SettingsDialog.js";
+import { PANEL_CATEGORIES, PANEL_LABEL_KEYS } from "../class/Dashboard/panel-registry.js";
 import { t, getLang } from "../utils/i18n.js";
 import {
     getDashboardConfig,
@@ -18,31 +19,6 @@ import {
 } from "../utils/config-manager.js";
 
 const h = React.createElement;
-
-const PANEL_LABEL_KEYS = {
-    article: "TYPE_ARTICLE",
-    breaking: "TYPE_NEWS",
-    onchain: "TYPE_ONCHAIN",
-    report: "TYPE_REPORT",
-    breakout: "LABEL_BREAKOUT",
-    exhaustion: "LABEL_EXHAUSTION",
-    goldenPit: "LABEL_GOLDEN_PIT",
-    liquidation: "LABEL_LIQUIDATION",
-    marketToday: "LABEL_MARKET_TODAY",
-    tokenUnlock: "LABEL_TOKEN_UNLOCK",
-    fredDashboard: "LABEL_FRED_DASHBOARD",
-    priceTicker: "LABEL_PRICE_TICKER",
-    economicCalendar: "LABEL_ECONOMIC_CALENDAR"
-};
-
-const PANEL_CATEGORIES = {
-    breakout: "breakout",
-    exhaustion: "exhaustion",
-    goldenPit: "goldenPit",
-    liquidation: "liquidation",
-    marketToday: "marketToday",
-    tokenUnlock: "tokenUnlock"
-};
 
 const Dashboard = () => {
     const { exit } = useApp();

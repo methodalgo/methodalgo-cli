@@ -1,0 +1,197 @@
+import { signedRequest } from "../../utils/api.js";
+import { getLang } from "../../utils/i18n.js";
+import * as fred from "../../utils/fred-api.js";
+import { fetchBinancePrice } from "../../utils/price-utils.js";
+
+export const TICKER_SOURCE_TYPES = {
+    FRED: "fred",
+    PRICE: "price",
+    NEWS: "news",
+    SIGNAL: "signal",
+    CUSTOM: "custom"
+};
+
+export class TickerDataManager {
+    constructor(lang = getLang()) {
+        this.lang = lang;
+        this.cache = new Map();
+        this.fetching = new Set();
+    }
+
+    async fetchSource(source) {
+        const cacheKey = this._getCacheKey(source);
+        const cached = this.cache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < 30000) {
+            return cached.data;
+        }
+        if (this.fetching.has(cacheKey)) {
+            return cached?.data || null;
+        }
+        this.fetching.add(cacheKey);
+        try {
+            const data = await this._fetchByType(source);
+            if (data) {
+                this.cache.set(cacheKey, { data, timestamp: Date.now() });
+            }
+            return data;
+        } finally {
+            this.fetching.delete(cacheKey);
+        }
+    }
+
+    formatSource(source, data) {
+        if (!data) return null;
+        const format = source.format || "{value}";
+        if (Array.isArray(data)) {
+            return data.map(item => this._formatSingle(format, item)).filter(Boolean);
+        }
+        return this._formatSingle(format, data);
+    }
+
+    clearCache() {
+        this.cache.clear();
+    }
+
+    async _fetchByType(source) {
+        switch (source.type) {
+            case TICKER_SOURCE_TYPES.FRED:
+                return this._fetchFred(source);
+            case TICKER_SOURCE_TYPES.PRICE:
+                return this._fetchPrice(source);
+            case TICKER_SOURCE_TYPES.NEWS:
+                return this._fetchNews(source);
+            case TICKER_SOURCE_TYPES.SIGNAL:
+                return this._fetchSignal(source);
+            case TICKER_SOURCE_TYPES.CUSTOM:
+                return { text: source.text || "" };
+            default:
+                return null;
+        }
+    }
+
+    _getCacheKey(source) {
+        switch (source.type) {
+            case TICKER_SOURCE_TYPES.FRED:
+                return `fred-${source.series || "unknown"}`;
+            case TICKER_SOURCE_TYPES.PRICE:
+                return `price-${source.symbol || "BTCUSDT"}`;
+            case TICKER_SOURCE_TYPES.NEWS:
+                return `news-${source.typeFilter || "all"}-${source.limit || 5}`;
+            case TICKER_SOURCE_TYPES.SIGNAL:
+                return `signal-${source.channel || "default"}`;
+            case TICKER_SOURCE_TYPES.CUSTOM:
+                return `custom-${(source.text || "").slice(0, 20)}`;
+            default:
+                return `${source.type}-${JSON.stringify(source)}`;
+        }
+    }
+
+    async _fetchFred(source) {
+        const apiKey = fred.getFredApiKey();
+        if (!apiKey) {
+            return { value: "--", series: source.series, direction: null };
+        }
+        try {
+            const obsRes = await fred.getSeriesObservations({
+                series_id: source.series,
+                sort_order: "desc",
+                limit: 10
+            });
+            const obs = obsRes.observations?.filter(o => o.value !== ".") || [];
+            if (obs.length > 0) {
+                const latest = obs[0];
+                const prev = obs.length > 1 ? obs[1] : null;
+                const value = Number(latest.value);
+                const change = prev ? value - Number(prev.value) : 0;
+                return {
+                    value: value.toFixed(2),
+                    series: source.series,
+                    direction: change > 0.001 ? "up" : change < -0.001 ? "down" : "flat",
+                    change,
+                    date: latest.date
+                };
+            }
+        } catch (e) {
+            console.debug(`[TickerBar] Error fetching FRED series ${source.series}:`, e.message);
+        }
+        return { value: "--", series: source.series, direction: null };
+    }
+
+    async _fetchPrice(source) {
+        const symbol = source.symbol || "BTCUSDT";
+        try {
+            const priceData = await fetchBinancePrice(symbol);
+            if (priceData) {
+                return {
+                    value: priceData.price,
+                    symbol,
+                    change: priceData.change,
+                    pctChange: priceData.pctChange,
+                    direction: priceData.direction
+                };
+            }
+        } catch (e) {
+            console.debug(`[TickerBar] Error fetching price for ${symbol}:`, e.message);
+        }
+        return {
+            value: "--",
+            symbol,
+            change: 0,
+            pctChange: 0,
+            direction: null
+        };
+    }
+
+    async _fetchNews(source) {
+        try {
+            const typeFilter = source.typeFilter || "breaking";
+            const limit = source.limit || 1;
+            const result = await signedRequest("/cli/news", {
+                type: typeFilter,
+                limit: Math.min(limit, 5),
+                lang: this.lang
+            });
+            if (result.data?.status && result.data.data?.length > 0) {
+                return result.data.data.slice(0, limit).map(item => ({
+                    title: typeof item.title === "object"
+                        ? (item.title[this.lang] || item.title.en || "")
+                        : (item.title || ""),
+                    url: item.url,
+                    timestamp: item.timestamp
+                }));
+            }
+        } catch (e) {
+            console.debug("[TickerBar] Error fetching news:", e.message);
+        }
+        return [];
+    }
+
+    async _fetchSignal(source) {
+        return { channel: source.channel, count: 0, latest: null };
+    }
+
+    _formatSingle(format, data) {
+        if (!data) return null;
+        let result = format;
+        const placeholders = {
+            value: data.value ?? data.text,
+            text: data.text,
+            date: data.date,
+            title: data.title,
+            symbol: data.symbol,
+            change: data.change,
+            pctChange: data.pctChange,
+            channel: data.channel,
+            count: data.count
+        };
+        for (const [key, val] of Object.entries(placeholders)) {
+            if (val !== undefined && val !== null) {
+                result = result.replace(`{${key}}`, String(val));
+            }
+        }
+        const direction = data.change !== undefined
+            ? data.change > 0 ? "up" : data.change < 0 ? "down" : "flat"
+            : data.direction || null;
+        return { text: result, direction, raw: data };
+    }
+}
