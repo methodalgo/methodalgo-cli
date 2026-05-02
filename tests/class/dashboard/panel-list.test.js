@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
     getDashboardItemKey,
     findDashboardItemIndex,
@@ -50,8 +50,15 @@ describe("PanelList helpers", () => {
     });
 
     it("can hide time prefixes for realtime ranking rows", () => {
-        expect(getDashboardItemTimePrefix({ hideTime: true, timestamp: "2026-05-03T00:00:00Z" })).toBe("");
-        expect(getDashboardItemTimePrefix({ timestamp: "2026-05-03T00:00:00Z" })).toMatch(/^\[\d{2}:\d{2}\] $/);
+        const timestamp = "2026-05-03T00:00:00Z";
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date(timestamp));
+        try {
+            expect(getDashboardItemTimePrefix({ hideTime: true, timestamp })).toBe("");
+            expect(getDashboardItemTimePrefix({ timestamp })).toMatch(/^\[\d{2}:\d{2}\] $/);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it("filters unrenderable items before panel pagination", () => {
