@@ -137,27 +137,25 @@ const Dashboard = () => {
         });
     }, []);
 
+    const startLiveUpdates = useCallback((enabledPanels) => {
+        return startDashboardLiveUpdates(
+            dataFetcherRef.current,
+            enabledPanels,
+            handlePanelUpdate,
+            setStatusInfo
+        );
+    }, [handlePanelUpdate]);
+
     useEffect(() => {
         refreshAll();
         
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
-        const startPollingFallback = () => {
-            dataFetcherRef.current.startAutoRefresh(enabledPanels, handlePanelUpdate);
-        };
-        const streamStarted = dataFetcherRef.current.startDashboardStream(
-            enabledPanels,
-            handlePanelUpdate,
-            error => {
-                setStatusInfo(prev => ({ ...prev, error: error.message }));
-                startPollingFallback();
-            }
-        );
-        if (!streamStarted) startPollingFallback();
+        startLiveUpdates(enabledPanels);
         
         return () => {
             dataFetcherRef.current.stopAutoRefresh();
         };
-    }, [refreshAll, handlePanelUpdate]);
+    }, [refreshAll, startLiveUpdates]);
 
     useEffect(() => {
         setFocusIdx(f => Math.min(f, Math.max(0, activePanels.length - 1)));
@@ -177,8 +175,8 @@ const Dashboard = () => {
         
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
         dataFetcherRef.current.stopAutoRefresh();
-        dataFetcherRef.current.startAutoRefresh(enabledPanels, handlePanelUpdate);
-    }, [handlePanelUpdate]);
+        startLiveUpdates(enabledPanels);
+    }, [startLiveUpdates]);
 
     const forceRefresh = useCallback(() => {
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
@@ -418,3 +416,19 @@ const dashboardCmd = new Command("dashboard")
     .action(() => render(h(Dashboard)));
 
 export default dashboardCmd;
+
+export function startDashboardLiveUpdates(dataFetcher, enabledPanels, handlePanelUpdate, setStatusInfo) {
+    const startPollingFallback = () => {
+        dataFetcher.startAutoRefresh(enabledPanels, handlePanelUpdate);
+    };
+    const streamStarted = dataFetcher.startDashboardStream(
+        enabledPanels,
+        handlePanelUpdate,
+        error => {
+            if (setStatusInfo) setStatusInfo(prev => ({ ...prev, error: error.message }));
+            startPollingFallback();
+        }
+    );
+    if (!streamStarted) startPollingFallback();
+    return streamStarted;
+}

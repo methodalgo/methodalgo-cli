@@ -27,6 +27,8 @@ export class DataFetcher {
         this.stats = new Map();
         this.abortControllers = new Map();
         this.dashboardStreamController = null;
+        this.dashboardStreamMaxRetries = options.dashboardStreamMaxRetries ?? 2;
+        this.dashboardStreamRetryDelay = options.dashboardStreamRetryDelay ?? 1000;
         
         this._initFetchers();
     }
@@ -462,13 +464,7 @@ export class DataFetcher {
         const controller = new AbortController();
         this.dashboardStreamController = controller;
         
-        this._consumeDashboardStream(streamPanels, onUpdate, controller)
-            .catch(error => {
-                if (controller.signal.aborted) return;
-                console.debug("[DataFetcher] Dashboard stream error:", error.message);
-                this.dashboardStreamController = null;
-                if (onError) onError(error);
-            });
+        this._runDashboardStream(streamPanels, onUpdate, onError, controller);
         
         return true;
     }
@@ -607,12 +603,38 @@ export class DataFetcher {
         
         while (!controller.signal.aborted) {
             const { done, value } = await reader.read();
-            if (done) break;
+            if (done) {
+                throw new Error("Dashboard stream ended");
+            }
             buffer += decoder.decode(value, { stream: true });
             const parts = buffer.split(/\n\n/);
             buffer = parts.pop() || "";
             for (const part of parts) {
                 this._handleDashboardStreamEvent(part, onUpdate);
+            }
+        }
+    }
+
+    async _runDashboardStream(panelTypes, onUpdate, onError, controller) {
+        let failures = 0;
+        while (!controller.signal.aborted) {
+            try {
+                await this._consumeDashboardStream(panelTypes, onUpdate, controller);
+                failures = 0;
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                failures++;
+                if (failures > this.dashboardStreamMaxRetries) {
+                    console.debug("[DataFetcher] Dashboard stream error:", error.message);
+                    if (this.dashboardStreamController === controller) this.dashboardStreamController = null;
+                    try {
+                        if (onError) onError(error);
+                    } catch (callbackError) {
+                        console.debug("[DataFetcher] Dashboard stream error handler failed:", callbackError.message);
+                    }
+                    return;
+                }
+                await delay(this.dashboardStreamRetryDelay * failures, controller.signal);
             }
         }
     }
@@ -692,3 +714,17 @@ export class DataFetcher {
 }
 
 export { PANEL_FETCHERS };
+
+function delay(ms, signal) {
+    if (ms <= 0) return Promise.resolve();
+    return new Promise(resolve => {
+        const timer = setTimeout(resolve, ms);
+        if (typeof timer.unref === "function") timer.unref();
+        if (signal) {
+            signal.addEventListener("abort", () => {
+                clearTimeout(timer);
+                resolve();
+            }, { once: true });
+        }
+    });
+}

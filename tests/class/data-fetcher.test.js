@@ -75,4 +75,53 @@ describe("DataFetcher", () => {
         expect(signedRequest.mock.calls[1][0]).toBe("/cli/news");
         expect(results.article.data[0].displayTitle).toBe("Fallback news");
     });
+
+    it("dashboard stream 正常结束后触发错误回调进入 fallback", async () => {
+        const { signedStreamRequest } = await import("../../src/utils/api.js");
+        signedStreamRequest.mockResolvedValue({
+            ok: true,
+            body: {
+                getReader: () => ({
+                    read: vi.fn().mockResolvedValue({ done: true })
+                })
+            }
+        });
+
+        const { DataFetcher } = await import("../../src/class/DataFetcher.js");
+        const fetcher = new DataFetcher({
+            lang: "en",
+            dashboardStreamMaxRetries: 0,
+            dashboardStreamRetryDelay: 0
+        });
+        const onError = vi.fn();
+
+        expect(fetcher.startDashboardStream(["article"], vi.fn(), onError)).toBe(true);
+        await vi.waitFor(() => expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+            message: "Dashboard stream ended"
+        })));
+    });
+
+    it("dashboard stream 失败会先重试再进入 fallback", async () => {
+        const { signedStreamRequest } = await import("../../src/utils/api.js");
+        signedStreamRequest.mockResolvedValue({
+            ok: true,
+            body: {
+                getReader: () => ({
+                    read: vi.fn().mockResolvedValue({ done: true })
+                })
+            }
+        });
+
+        const { DataFetcher } = await import("../../src/class/DataFetcher.js");
+        const fetcher = new DataFetcher({
+            lang: "en",
+            dashboardStreamMaxRetries: 1,
+            dashboardStreamRetryDelay: 0
+        });
+        const onError = vi.fn();
+
+        fetcher.startDashboardStream(["article"], vi.fn(), onError);
+        await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
+        expect(signedStreamRequest).toHaveBeenCalledTimes(2);
+    });
 });

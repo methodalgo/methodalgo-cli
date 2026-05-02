@@ -108,6 +108,40 @@ describe('dashboard Command Structure', () => {
             
             expect(dashboardCmd.commands.length).toBe(0);
         });
+
+        it('should prefer dashboard stream and start polling only after stream error', async () => {
+            const { startDashboardLiveUpdates } = await import('../../src/commands/dashboard.js');
+            const dataFetcher = {
+                startDashboardStream: vi.fn((panels, onUpdate, onError) => {
+                    onError(new Error('stream ended'));
+                    return true;
+                }),
+                startAutoRefresh: vi.fn()
+            };
+            const setStatusInfo = vi.fn();
+            const handlePanelUpdate = vi.fn();
+
+            const streamStarted = startDashboardLiveUpdates(dataFetcher, ['article'], handlePanelUpdate, setStatusInfo);
+
+            expect(streamStarted).toBe(true);
+            expect(dataFetcher.startDashboardStream).toHaveBeenCalledWith(['article'], handlePanelUpdate, expect.any(Function));
+            expect(dataFetcher.startAutoRefresh).toHaveBeenCalledWith(['article'], handlePanelUpdate);
+            expect(setStatusInfo).toHaveBeenCalled();
+        });
+
+        it('should start polling immediately when dashboard stream is unavailable', async () => {
+            const { startDashboardLiveUpdates } = await import('../../src/commands/dashboard.js');
+            const dataFetcher = {
+                startDashboardStream: vi.fn(() => false),
+                startAutoRefresh: vi.fn()
+            };
+            const handlePanelUpdate = vi.fn();
+
+            const streamStarted = startDashboardLiveUpdates(dataFetcher, ['priceTicker'], handlePanelUpdate, vi.fn());
+
+            expect(streamStarted).toBe(false);
+            expect(dataFetcher.startAutoRefresh).toHaveBeenCalledWith(['priceTicker'], handlePanelUpdate);
+        });
     });
 
     describe('Panel configuration constants', () => {
