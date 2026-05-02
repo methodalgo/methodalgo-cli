@@ -124,6 +124,7 @@ conditionalDescribe('Integration Tests', () => {
             const { default: newsCmd } = await import('../../src/commands/news.js');
             const { default: signalsCmd } = await import('../../src/commands/signals.js');
             const { default: configCmd } = await import('../../src/commands/config.js');
+            const { default: binanceCmd } = await import('../../src/commands/binance.js');
 
             expect(newsCmd).toBeDefined();
             expect(newsCmd.name()).toBe('news');
@@ -133,6 +134,9 @@ conditionalDescribe('Integration Tests', () => {
             
             expect(configCmd).toBeDefined();
             expect(configCmd.name()).toBe('config');
+
+            expect(binanceCmd).toBeDefined();
+            expect(binanceCmd.name()).toBe('binance');
         });
 
         it('should have all subcommands for config', async () => {

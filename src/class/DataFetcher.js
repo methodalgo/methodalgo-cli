@@ -2,7 +2,7 @@ import { signedRequest, signedStreamRequest } from "../utils/api.js";
 import { getLang, t } from "../utils/i18n.js";
 import config from "../utils/config-manager.js";
 import * as fred from "../utils/fred-api.js";
-import { fetchBinancePrice } from "../utils/price-utils.js";
+import { fetchBinanceMovers, fetchBinancePrice } from "../utils/price-utils.js";
 import { PANEL_FETCHERS } from "./Dashboard/panel-registry.js";
 
 const DASHBOARD_SNAPSHOT_PANELS = new Set([
@@ -89,6 +89,9 @@ export class DataFetcher {
                     break;
                 case "price":
                     data = await this._fetchPrice(fetcher, abortController.signal);
+                    break;
+                case "binance-movers":
+                    data = await this._fetchBinanceMovers(fetcher, abortController.signal);
                     break;
                 case "calendar":
                     data = await this._fetchCalendar(fetcher, abortController.signal);
@@ -332,6 +335,24 @@ export class DataFetcher {
         }
         
         return results;
+    }
+
+    async _fetchBinanceMovers(fetcher, signal) {
+        try {
+            const result = await fetchBinanceMovers({
+                market: fetcher.market || "spot",
+                limit: fetcher.limit || 5,
+                minQuoteVolume: fetcher.minQuoteVolume || 1000000,
+                signal
+            });
+            return formatBinanceMoverRows(result);
+        } catch (e) {
+            return [{
+                displayTitle: t("ERR_BINANCE_MOVERS_UNAVAILABLE", { message: e.message }),
+                timestamp: new Date().toISOString(),
+                direction: "bear"
+            }];
+        }
     }
     
     async _fetchCalendar(fetcher, signal) {
@@ -735,4 +756,26 @@ function delay(ms, signal) {
             }, { once: true });
         }
     });
+}
+
+export function formatBinanceMoverRows(result) {
+    if (!result) return [];
+    const timestamp = result.timestamp || new Date().toISOString();
+    const formatRow = (item, idx, icon) => ({
+        ...item,
+        id: `${result.market}-${item.rankType}-${item.symbol}`,
+        timestamp,
+        hideTime: true,
+        displayTitle: `${icon}${idx + 1} ${item.symbol} ${formatPercent(item.pctChange)} ${item.price} Vol ${item.volumeLabel}`,
+        direction: item.direction
+    });
+    return [
+        ...(result.gainers || []).map((item, idx) => formatRow(item, idx, "↑")),
+        ...(result.losers || []).map((item, idx) => formatRow(item, idx, "↓"))
+    ];
+}
+
+function formatPercent(value) {
+    const prefix = value > 0 ? "+" : "";
+    return `${prefix}${value.toFixed(2)}%`;
 }

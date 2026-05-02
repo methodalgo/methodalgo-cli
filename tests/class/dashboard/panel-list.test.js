@@ -4,7 +4,10 @@ import {
     findDashboardItemIndex,
     getWatchlistMatches,
     getNewEventLabel,
-    hasRecentDashboardItems
+    hasRecentDashboardItems,
+    getDashboardItemTitle,
+    getRenderableDashboardItems,
+    getDashboardItemTimePrefix
 } from "../../../src/class/Dashboard/PanelList.js";
 
 describe("PanelList helpers", () => {
@@ -44,5 +47,27 @@ describe("PanelList helpers", () => {
         const now = Date.parse("2026-05-03T00:00:12Z");
         expect(hasRecentDashboardItems([{ timestamp: "2026-05-03T00:00:00Z" }], now)).toBe(true);
         expect(hasRecentDashboardItems([{ timestamp: "2026-05-02T23:58:00Z" }], now)).toBe(false);
+    });
+
+    it("can hide time prefixes for realtime ranking rows", () => {
+        expect(getDashboardItemTimePrefix({ hideTime: true, timestamp: "2026-05-03T00:00:00Z" })).toBe("");
+        expect(getDashboardItemTimePrefix({ timestamp: "2026-05-03T00:00:00Z" })).toMatch(/^\[\d{2}:\d{2}\] $/);
+    });
+
+    it("filters unrenderable items before panel pagination", () => {
+        const items = [
+            { id: "a", displayTitle: "Visible title" },
+            { id: "b", displayTitle: "" },
+            null,
+            { id: "c", title: "Fallback title" },
+            { id: "d", signals: [{ title: "Signal title" }] }
+        ];
+
+        expect(getDashboardItemTitle(items[3])).toBe("Fallback title");
+        expect(getRenderableDashboardItems(items)).toEqual([
+            { item: items[0], originalIndex: 0, title: "Visible title" },
+            { item: items[3], originalIndex: 3, title: "Fallback title" },
+            { item: items[4], originalIndex: 4, title: "Signal title" }
+        ]);
     });
 });

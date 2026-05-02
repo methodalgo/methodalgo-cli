@@ -14,7 +14,9 @@ const DEFAULT_DASHBOARD_PANELS = {
     tokenUnlock: { enabled: true, column: 3, order: 3, refreshInterval: 60000, maxVisible: null },
     fredDashboard: { enabled: false, column: 3, order: 4, refreshInterval: 3600000, maxVisible: null },
     priceTicker: { enabled: false, column: 3, order: 5, refreshInterval: 60000, maxVisible: null },
-    economicCalendar: { enabled: false, column: 3, order: 6, refreshInterval: 3600000, maxVisible: null }
+    binanceSpotMovers24h: { enabled: false, column: 3, order: 6, refreshInterval: 60000, maxVisible: null },
+    binanceFuturesMovers24h: { enabled: false, column: 3, order: 7, refreshInterval: 60000, maxVisible: null },
+    economicCalendar: { enabled: false, column: 3, order: 8, refreshInterval: 3600000, maxVisible: null }
 };
 
 const DEFAULT_DASHBOARD_TICKER = {
@@ -97,7 +99,7 @@ const config = new Conf({
 
 export function getDashboardConfig() {
     const stored = config.get("dashboard");
-    return mergeDeep(DEFAULT_DASHBOARD, stored || {});
+    return normalizeDashboardConfig(mergeDeep(DEFAULT_DASHBOARD, stored || {}));
 }
 
 export function setDashboardConfig(partial) {
@@ -213,6 +215,13 @@ function mergeDeep(target, source) {
     }
     
     return output;
+}
+
+function normalizeDashboardConfig(dashboard) {
+    const panels = { ...(dashboard.panels || {}) };
+    delete panels.binanceMovers24h;
+    delete panels.binanceMoversUtc;
+    return { ...dashboard, panels };
 }
 
 export {

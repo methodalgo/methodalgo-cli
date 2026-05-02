@@ -9,6 +9,8 @@ import { LoadingScreen } from "../class/Dashboard/LoadingScreen.js";
 import { StatusLine } from "../class/Dashboard/StatusLine.js";
 import { TickerBar } from "../class/Dashboard/TickerBar.js";
 import { SettingsDialog } from "../class/Dashboard/SettingsDialog.js";
+import { CommandPalette } from "../class/Dashboard/CommandPalette.js";
+import { ToastStrip, buildDashboardToast, hasRenderableToast } from "../class/Dashboard/ToastStrip.js";
 import { PANEL_CATEGORIES, PANEL_LABEL_KEYS } from "../class/Dashboard/panel-registry.js";
 import { t, getLang } from "../utils/i18n.js";
 import {
@@ -26,6 +28,8 @@ const Dashboard = ({ watchlist = [] }) => {
     const [focusIdx, setFocusIdx] = useState(0);
     const [dialog, setDialog] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
+    const [showPalette, setShowPalette] = useState(false);
+    const [toast, setToast] = useState(null);
     const [caches, setCaches] = useState({});
     const [statusInfo, setStatusInfo] = useState({ time: "", mem: "0", error: null, connection: "loading" });
     const [config, setConfig] = useState(() => getDashboardConfig());
@@ -101,6 +105,8 @@ const Dashboard = ({ watchlist = [] }) => {
         if (result?.data) {
             setCaches(prev => ({ ...prev, [panelType]: result.data }));
         }
+        const nextToast = buildDashboardToast(panelType, result, getPanelLabel);
+        if (nextToast) setToast(nextToast);
         
         const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
         setStatusInfo(prev => {
@@ -115,7 +121,7 @@ const Dashboard = ({ watchlist = [] }) => {
             }
             return { ...prev, mem };
         });
-    }, []);
+    }, [getPanelLabel]);
 
     const startLiveUpdates = useCallback((enabledPanels) => {
         return startDashboardLiveUpdates(
@@ -155,6 +161,7 @@ const Dashboard = ({ watchlist = [] }) => {
         
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
         dataFetcherRef.current.stopAutoRefresh();
+        refreshDashboardPanels(dataFetcherRef.current, enabledPanels, setCaches, setStatusInfo);
         startLiveUpdates(enabledPanels);
     }, [startLiveUpdates]);
 
@@ -163,13 +170,56 @@ const Dashboard = ({ watchlist = [] }) => {
         refreshDashboardPanels(dataFetcherRef.current, enabledPanels, setCaches, setStatusInfo);
     }, []);
 
+    const quitDashboard = useCallback(() => {
+        dataFetcherRef.current?.destroy();
+        exit();
+        process.exit(0);
+    }, [exit]);
+
+    const toggleTicker = useCallback(() => {
+        setTickerEnabled(prev => !prev);
+    }, []);
+
+    const nextPanel = useCallback(() => {
+        if (activePanels.length === 0) return;
+        setFocusIdx(f => (f + 1 + activePanels.length) % activePanels.length);
+    }, [activePanels.length]);
+
+    const previousPanel = useCallback(() => {
+        if (activePanels.length === 0) return;
+        setFocusIdx(f => (f - 1 + activePanels.length) % activePanels.length);
+    }, [activePanels.length]);
+
+    const paletteCommands = useMemo(() => buildDashboardPaletteCommands({
+        activePanels,
+        getPanelLabel,
+        refreshPanels,
+        openSettings: () => setShowSettings(true),
+        toggleTicker,
+        nextPanel,
+        previousPanel,
+        focusPanel: setFocusIdx,
+        quitDashboard
+    }), [activePanels, getPanelLabel, refreshPanels, toggleTicker, nextPanel, previousPanel, quitDashboard]);
+
+    useEffect(() => {
+        if (!toast) return undefined;
+        const timer = setTimeout(() => setToast(null), 5000);
+        if (typeof timer.unref === "function") timer.unref();
+        return () => clearTimeout(timer);
+    }, [toast]);
+
     useInput((input, key) => {
-        if (showSettings || dialog) return;
+        if (showSettings || dialog || showPalette) return;
         
         if (input === "q") { 
-            dataFetcherRef.current?.destroy();
-            exit(); 
-            process.exit(0); 
+            quitDashboard();
+            return;
+        }
+
+        if (input === "/" || (key.ctrl && input === "k")) {
+            setShowPalette(true);
+            return;
         }
         
         if (input === "s") {
@@ -183,7 +233,7 @@ const Dashboard = ({ watchlist = [] }) => {
         }
         
         if (input === "t") {
-            setTickerEnabled(prev => !prev);
+            toggleTicker();
             return;
         }
         
@@ -198,13 +248,19 @@ const Dashboard = ({ watchlist = [] }) => {
         onConfigChange: handleConfigChange
     });
     if (dialog) return h(DetailDialog, { ...dialog, onClose: () => setDialog(null) });
+    if (showPalette) return h(CommandPalette, {
+        commands: paletteCommands,
+        onClose: () => setShowPalette(false)
+    });
 
     const termRows = process.stdout.rows || 40;
     const termCols = process.stdout.columns || 120;
     
     const tickerHeight = tickerEnabled ? 3 : 0;
+    const showToast = hasRenderableToast(toast);
+    const toastHeight = showToast ? 1 : 0;
     const statusHeight = 3;
-    const availableRows = Math.max(10, termRows - tickerHeight - statusHeight);
+    const availableRows = Math.max(10, termRows - tickerHeight - toastHeight - statusHeight);
     const colWidth = Math.floor(termCols / 3);
 
     const col1Count = col1Panels.length;
@@ -216,6 +272,7 @@ const Dashboard = ({ watchlist = [] }) => {
     const MIN_VISIBLE = 6;
     const MAX_VISIBLE = 20;
     const BORDER_OVERHEAD = 2;
+    const PANEL_CHROME_HEIGHT = 3;
 
     const calcMaxVisible = (totalRows, panelCount, fixedOverhead = 0) => {
         if (panelCount === 0) return MIN_VISIBLE;
@@ -231,11 +288,15 @@ const Dashboard = ({ watchlist = [] }) => {
 
     const col12BasePerPanel = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, Math.floor((availableRows - 4 * BORDER_OVERHEAD) / 4)));
     const col3BasePerPanel = Math.max(MIN_VISIBLE, Math.min(MAX_VISIBLE, Math.floor((availableRows - clockHeight - 2 * BORDER_OVERHEAD) / 2)));
+    const col1Heights = distributeDashboardPanelHeights(col1Panels, availableRows);
+    const col2Heights = distributeDashboardPanelHeights(col2Panels, availableRows);
+    const col3Heights = distributeDashboardPanelHeights(col3Panels, availableRows);
 
     const renderColumnPanel = (panelConfig, columnIdx, panelIdx) => {
         const panelType = panelConfig.type;
         const globalFocusIdx = panelIndexMap.get(panelType);
         const isFocused = globalFocusIdx === focusIdx;
+        const panelHeight = [col1Heights, col2Heights, col3Heights][columnIdx]?.[panelIdx];
         
         if (panelType === "clock") {
             return h(ClockPanel, { 
@@ -256,6 +317,7 @@ const Dashboard = ({ watchlist = [] }) => {
         } else {
             maxVisible = col3MaxVisible > 0 ? col3MaxVisible : col3BasePerPanel;
         }
+        if (panelHeight) maxVisible = panelHeight - PANEL_CHROME_HEIGHT;
         maxVisible = Math.max(1, maxVisible);
         
         return h(PanelList, {
@@ -266,6 +328,7 @@ const Dashboard = ({ watchlist = [] }) => {
             focused: isFocused,
             onSelect: idx => openDetail(panelType, idx),
             maxVisible,
+            height: panelHeight,
             watchlist
         });
     };
@@ -287,6 +350,13 @@ const Dashboard = ({ watchlist = [] }) => {
         ));
     }
 
+    if (showToast) {
+        mainElements.push(h(ToastStrip, {
+            key: "toast",
+            toast
+        }));
+    }
+
     const columns = [];
     
     if (col1Panels.length > 0) {
@@ -297,6 +367,7 @@ const Dashboard = ({ watchlist = [] }) => {
                 width: colWidth, 
                 flexShrink: 1, 
                 flexGrow: 1,
+                height: availableRows,
                 minWidth: 0,
                 overflow: "hidden" 
             },
@@ -313,6 +384,7 @@ const Dashboard = ({ watchlist = [] }) => {
                 width: colWidth, 
                 flexShrink: 1, 
                 flexGrow: 1,
+                height: availableRows,
                 minWidth: 0,
                 overflow: "hidden" 
             },
@@ -328,6 +400,7 @@ const Dashboard = ({ watchlist = [] }) => {
                 flexDirection: "column", 
                 flexGrow: 1, 
                 flexShrink: 1, 
+                height: availableRows,
                 minWidth: 0, 
                 overflow: "hidden" 
             },
@@ -340,8 +413,8 @@ const Dashboard = ({ watchlist = [] }) => {
         mainElements.push(
             h(Box, { 
                 key: "main-content",
-                flexGrow: 1, 
-                flexShrink: 1,
+                height: availableRows,
+                flexShrink: 0,
                 width: "100%", 
                 overflow: "hidden" 
             },
@@ -357,7 +430,8 @@ const Dashboard = ({ watchlist = [] }) => {
     },
         h(StatusLine, { 
             key: "status",
-            statusInfo
+            statusInfo,
+            focusedPanelLabel: getPanelLabel(activePanels[focusIdx])
         })
     ));
 
@@ -432,6 +506,67 @@ export async function refreshDashboardPanels(dataFetcher, enabledPanels, setCach
         connection: firstError || fetchError ? "error" : prev.connection
     }));
     return { results, errors };
+}
+
+export function buildDashboardPaletteCommands({
+    activePanels = [],
+    getPanelLabel = type => type,
+    refreshPanels,
+    openSettings,
+    toggleTicker,
+    nextPanel,
+    previousPanel,
+    focusPanel,
+    quitDashboard
+} = {}) {
+    const commands = [
+        { id: "refresh", label: t("TUI_ACTION_REFRESH"), hint: "R", keywords: "reload update", run: refreshPanels },
+        { id: "settings", label: t("TUI_ACTION_SETTINGS"), hint: "S", keywords: "config preferences", run: openSettings },
+        { id: "toggle-ticker", label: t("TUI_ACTION_TOGGLE_TICKER"), hint: "T", keywords: "ticker bar", run: toggleTicker },
+        { id: "next-panel", label: t("TUI_ACTION_NEXT_PANEL"), hint: "Tab", keywords: "focus switch", run: nextPanel },
+        { id: "previous-panel", label: t("TUI_ACTION_PREVIOUS_PANEL"), hint: "Shift+Tab", keywords: "focus switch", run: previousPanel },
+        { id: "quit", label: t("TUI_ACTION_QUIT"), hint: "Q", keywords: "exit close", run: quitDashboard }
+    ];
+
+    activePanels
+        .filter(type => type !== "clock")
+        .forEach((type, idx) => {
+            const panelLabel = getPanelLabel(type);
+            commands.push({
+                id: `focus-${type}`,
+                label: t("TUI_ACTION_FOCUS_PANEL", { panel: panelLabel }),
+                hint: `${idx + 1}`,
+                keywords: `panel ${type} ${panelLabel}`,
+                run: () => focusPanel?.(activePanels.indexOf(type))
+            });
+        });
+
+    return commands;
+}
+
+export function distributeDashboardPanelHeights(panelConfigs = [], totalRows = 0) {
+    if (!Array.isArray(panelConfigs) || panelConfigs.length === 0) return [];
+    const clockHeight = 4;
+    const safeRows = Math.max(panelConfigs.length, Math.floor(totalRows || 0));
+    const fixedHeights = panelConfigs.map(panel => panel.type === "clock" ? clockHeight : 0);
+    const fixedTotal = fixedHeights.reduce((sum, value) => sum + value, 0);
+    const flexibleIndexes = panelConfigs
+        .map((panel, idx) => panel.type === "clock" ? -1 : idx)
+        .filter(idx => idx >= 0);
+
+    if (flexibleIndexes.length === 0) return fixedHeights;
+
+    const flexibleRows = Math.max(flexibleIndexes.length, safeRows - fixedTotal);
+    const base = Math.floor(flexibleRows / flexibleIndexes.length);
+    let remainder = flexibleRows % flexibleIndexes.length;
+    const heights = [...fixedHeights];
+
+    for (const idx of flexibleIndexes) {
+        heights[idx] = base + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder -= 1;
+    }
+
+    return heights;
 }
 
 export function parseWatchlist(value) {

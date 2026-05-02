@@ -29,6 +29,8 @@ const PANEL_LABELS = {
     tokenUnlock: "Token Unlock",
     fredDashboard: "FRED Macro",
     priceTicker: "Price Ticker",
+    binanceSpotMovers24h: "Binance Spot 24h Movers",
+    binanceFuturesMovers24h: "Binance Futures 24h Movers",
     economicCalendar: "Economic Calendar"
 };
 
@@ -72,7 +74,7 @@ const TICKER_SOURCE_TYPE_LABELS = {
 export const SettingsDialog = ({ onClose, onConfigChange }) => {
     const termRows = process.stdout.rows || 40;
     const termCols = process.stdout.columns || 80;
-    
+
     const [activeTab, setActiveTab] = useState(0);
     const [config, setConfig] = useState(() => getDashboardConfig());
     const [selectedPanel, setSelectedPanel] = useState(0);
@@ -99,6 +101,30 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         setConfig(prev => {
             const panels = { ...prev.panels };
             panels[panelType] = { ...panels[panelType], ...updates };
+            return { ...prev, panels };
+        });
+        setHasChanges(true);
+    }, []);
+
+    const reorderPanel = useCallback((panelType, direction) => {
+        setConfig(prev => {
+            const current = prev.panels?.[panelType];
+            if (!current) return prev;
+            const sameColumn = Object.entries(prev.panels)
+                .map(([type, cfg]) => ({ type, ...cfg }))
+                .filter(panel => panel.column === current.column)
+                .sort((a, b) => (a.order || 0) - (b.order || 0));
+            const currentIdx = sameColumn.findIndex(panel => panel.type === panelType);
+            const targetIdx = currentIdx + direction;
+            if (currentIdx < 0 || targetIdx < 0 || targetIdx >= sameColumn.length) return prev;
+
+            const updatedColumn = [...sameColumn];
+            [updatedColumn[currentIdx], updatedColumn[targetIdx]] = [updatedColumn[targetIdx], updatedColumn[currentIdx]];
+
+            const panels = { ...prev.panels };
+            updatedColumn.forEach((panel, idx) => {
+                panels[panel.type] = { ...panels[panel.type], order: idx + 1 };
+            });
             return { ...prev, panels };
         });
         setHasChanges(true);
@@ -156,12 +182,22 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
 
     const handlePanelsInput = (input, key) => {
         const panels = getPanelList();
-        
+
         if (key.upArrow) {
+            if (key.shift) {
+                const panel = panels[selectedPanel];
+                if (panel) reorderPanel(panel.type, -1);
+                return;
+            }
             setSelectedPanel(i => Math.max(0, i - 1));
             return;
         }
         if (key.downArrow) {
+            if (key.shift) {
+                const panel = panels[selectedPanel];
+                if (panel) reorderPanel(panel.type, 1);
+                return;
+            }
             setSelectedPanel(i => Math.min(panels.length - 1, i + 1));
             return;
         }
@@ -175,7 +211,9 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         if (input === "1" || input === "2" || input === "3") {
             const panel = panels[selectedPanel];
             if (panel) {
-                updatePanels(panel.type, { column: parseInt(input) });
+                const column = parseInt(input);
+                const nextOrder = getNextPanelOrder(config.panels, column);
+                updatePanels(panel.type, { column, order: nextOrder });
             }
             return;
         }
@@ -188,7 +226,7 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
                     currentIdx = options.findIndex(o => o.value >= panel.refreshInterval);
                     if (currentIdx === -1) currentIdx = options.length - 1;
                 }
-                const nextIdx = key.rightArrow 
+                const nextIdx = key.rightArrow
                     ? Math.min(options.length - 1, currentIdx + 1)
                     : Math.max(0, currentIdx - 1);
                 if (options[nextIdx]) {
@@ -202,7 +240,7 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
     const handleTickerInput = (input, key) => {
         const sources = config.ticker.sources || [];
         const maxSelection = sources.length;
-        
+
         if (key.upArrow) {
             setSelectedTickerSource(i => Math.max(0, i - 1));
             return;
@@ -248,9 +286,9 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         if (input === " " || key.return) {
             const theme = THEME_OPTIONS[selectedTheme];
             if (theme) {
-                updateTheme({ 
-                    name: theme.id, 
-                    accentColor: theme.accent 
+                updateTheme({
+                    name: theme.id,
+                    accentColor: theme.accent
                 });
             }
             return;
@@ -302,14 +340,14 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
 
     const renderTabs = () => {
         return h(Box, { flexDirection: "row", marginBottom: 1 },
-            ...SETTINGS_TABS.map((tab, idx) => 
-                h(Box, { 
+            ...SETTINGS_TABS.map((tab, idx) =>
+                h(Box, {
                     key: idx,
                     paddingX: 2,
                     marginRight: 1,
                     backgroundColor: activeTab === idx ? "red" : undefined
                 },
-                    h(Text, { 
+                    h(Text, {
                         color: activeTab === idx ? "white" : "gray",
                         bold: activeTab === idx
                     }, `${idx + 1}. ${tab.label}`)
@@ -325,8 +363,8 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         items.push(h(Box, { flexDirection: "row", width: "100%" },
             h(Text, { width: 3, color: "gray" }, "#"),
             h(Text, { width: 6, color: "gray" }, "Enable"),
-            h(Text, { width: 8, color: "gray" }, "Column"),
-            h(Text, { width: 20, color: "gray" }, "Panel"),
+            h(Text, { width: 11, color: "gray" }, "Layout"),
+            h(Text, { width: 26, color: "gray" }, "Panel"),
             h(Text, { flexGrow: 1, color: "gray" }, "Refresh Interval")
         ));
         items.push(h(Text, { color: "gray" }, "─".repeat(Math.min(termCols - 6, 70))));
@@ -337,31 +375,31 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
             const options = panel.type === "clock" ? CLOCK_REFRESH_OPTIONS : REFRESH_OPTIONS;
             const refreshLabel = options.find(o => o.value === panel.refreshInterval)?.label || "Custom";
 
-            items.push(h(Box, { 
-                key: i, 
-                flexDirection: "row", 
+            items.push(h(Box, {
+                key: i,
+                flexDirection: "row",
                 width: "100%",
                 backgroundColor: isSelected ? "red" : undefined
             },
-                h(Text, { 
-                    width: 3, 
-                    color: isSelected ? "white" : "yellow" 
+                h(Text, {
+                    width: 3,
+                    color: isSelected ? "white" : "yellow"
                 }, `${i + 1}.`),
-                h(Text, { 
-                    width: 6, 
+                h(Text, {
+                    width: 6,
                     color: isSelected ? "white" : (panel.enabled ? "green" : "red")
                 }, panel.enabled ? "[✓]" : "[ ]"),
-                h(Text, { 
-                    width: 8, 
+                h(Text, {
+                    width: 11,
                     color: isSelected ? "white" : "cyan"
-                }, `Col ${panel.column}`),
-                h(Text, { 
-                    width: 20, 
+                }, `C${panel.column} #${panel.order || 0}`),
+                h(Text, {
+                    width: 26,
                     color: isSelected ? "white" : "white",
                     bold: true
-                }, panel.label?.slice(0, 18)),
-                h(Text, { 
-                    flexGrow: 1, 
+                }, panel.label?.slice(0, 24)),
+                h(Text, {
+                    flexGrow: 1,
                     color: isSelected ? "white" : "gray"
                 }, `← ${refreshLabel} →`)
             ));
@@ -378,7 +416,9 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
             h(Text, { color: "cyan" }, "Space"),
             h(Text, { color: "gray" }, " Toggle | "),
             h(Text, { color: "cyan" }, "1/2/3"),
-            h(Text, { color: "gray" }, " Column | "),
+            h(Text, { color: "gray" }, " Move Column | "),
+            h(Text, { color: "cyan" }, "Shift+↑↓"),
+            h(Text, { color: "gray" }, " Reorder | "),
             h(Text, { color: "cyan" }, "←→"),
             h(Text, { color: "gray" }, " Interval")
         ));
@@ -393,27 +433,27 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
 
         items.push(h(Box, { flexDirection: "row" },
             h(Text, { color: "cyan" }, "Ticker Status: "),
-            h(Text, { color: config.ticker.enabled ? "green" : "red", bold: true }, 
+            h(Text, { color: config.ticker.enabled ? "green" : "red", bold: true },
                 config.ticker.enabled ? "ENABLED" : "DISABLED"),
             h(Text, { color: "gray" }, "   Speed: "),
             h(Text, { color: "yellow" }, `← ${speedLabel} →`)
         ));
         items.push(h(Text, { color: "gray" }, "─".repeat(Math.min(termCols - 6, 70))));
 
-        items.push(h(Box, { 
-            flexDirection: "row", 
+        items.push(h(Box, {
+            flexDirection: "row",
             width: "100%",
             backgroundColor: selectedTickerSource === 0 ? "red" : undefined
         },
-            h(Text, { 
-                width: 3, 
-                color: selectedTickerSource === 0 ? "white" : "yellow" 
+            h(Text, {
+                width: 3,
+                color: selectedTickerSource === 0 ? "white" : "yellow"
             }, "0. "),
-            h(Text, { 
-                width: 6, 
+            h(Text, {
+                width: 6,
                 color: selectedTickerSource === 0 ? "white" : (config.ticker.enabled ? "green" : "red")
             }, config.ticker.enabled ? "[✓]" : "[ ]"),
-            h(Text, { 
+            h(Text, {
                 color: selectedTickerSource === 0 ? "white" : "white",
                 bold: true
             }, "Master Ticker Toggle")
@@ -440,21 +480,21 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
                 displayText = `${typeLabel}: ${JSON.stringify(source)}`;
             }
 
-            items.push(h(Box, { 
-                key: sourceIdx, 
-                flexDirection: "row", 
+            items.push(h(Box, {
+                key: sourceIdx,
+                flexDirection: "row",
                 width: "100%",
                 backgroundColor: isSelected ? "red" : undefined
             },
-                h(Text, { 
-                    width: 3, 
-                    color: isSelected ? "white" : "yellow" 
+                h(Text, {
+                    width: 3,
+                    color: isSelected ? "white" : "yellow"
                 }, `${sourceIdx}. `),
-                h(Text, { 
-                    width: 6, 
+                h(Text, {
+                    width: 6,
                     color: isSelected ? "white" : ((source.enabled !== false) ? "green" : "red")
                 }, (source.enabled !== false) ? "[✓]" : "[ ]"),
-                h(Text, { 
+                h(Text, {
                     color: isSelected ? "white" : "white",
                     wrap: "truncate"
                 }, displayText.slice(0, termCols - 20))
@@ -485,26 +525,26 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
             const isSelected = i === selectedTheme;
             const isActive = config.theme.name === theme.id;
 
-            items.push(h(Box, { 
-                key: i, 
-                flexDirection: "row", 
+            items.push(h(Box, {
+                key: i,
+                flexDirection: "row",
                 width: "100%",
                 backgroundColor: isSelected ? "red" : undefined
             },
-                h(Text, { 
-                    width: 3, 
-                    color: isSelected ? "white" : "yellow" 
+                h(Text, {
+                    width: 3,
+                    color: isSelected ? "white" : "yellow"
                 }, `${i + 1}. `),
-                h(Text, { 
-                    width: 6, 
+                h(Text, {
+                    width: 6,
                     color: isSelected ? "white" : (isActive ? "green" : "gray")
                 }, isActive ? "[✓]" : "[ ]"),
-                h(Text, { 
-                    width: 20, 
+                h(Text, {
+                    width: 20,
                     color: isSelected ? "white" : theme.accent,
                     bold: true
                 }, theme.name),
-                h(Text, { 
+                h(Text, {
                     color: isSelected ? "white" : "gray"
                 }, `Accent: ${theme.accent}`)
             ));
@@ -542,13 +582,13 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
 
         items.push(h(Box, { flexDirection: "row", width: "100%", marginTop: 1 },
             h(Text, { width: 25, color: "gray" }, "Compact Mode:"),
-            h(Text, { color: config.theme.compactMode ? "green" : "red" }, 
+            h(Text, { color: config.theme.compactMode ? "green" : "red" },
                 config.theme.compactMode ? "ENABLED" : "DISABLED")
         ));
 
         items.push(h(Box, { flexDirection: "row", width: "100%", marginTop: 1 },
             h(Text, { width: 25, color: "gray" }, "Panel Borders:"),
-            h(Text, { color: config.theme.panelBorder ? "green" : "red" }, 
+            h(Text, { color: config.theme.panelBorder ? "green" : "red" },
                 config.theme.panelBorder ? "ENABLED" : "DISABLED")
         ));
 
@@ -589,15 +629,15 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         }
     };
 
-    const messageColor = message?.type === "success" ? "green" : 
+    const messageColor = message?.type === "success" ? "green" :
                        message?.type === "error" ? "red" : "cyan";
 
     return h(Box, {
-        flexDirection: "column", 
-        borderStyle: "double", 
+        flexDirection: "column",
+        borderStyle: "double",
         borderColor: "red",
-        paddingX: 1, 
-        width: "100%", 
+        paddingX: 1,
+        width: "100%",
         height: termRows
     },
         h(Box, { marginBottom: 1 },
@@ -605,25 +645,25 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
             hasChanges && h(Text, { color: "yellow", marginLeft: 2 }, "● Unsaved changes"),
             message && h(Text, { color: messageColor, marginLeft: 2 }, message.text)
         ),
-        
+
         renderTabs(),
-        
-        h(Box, { 
-            flexDirection: "column", 
-            flexGrow: 1, 
+
+        h(Box, {
+            flexDirection: "column",
+            flexGrow: 1,
             marginTop: 1,
             overflow: "hidden"
         },
             ...renderContent()
         ),
 
-        h(Box, { 
-            justifyContent: "center", 
-            borderStyle: "single", 
-            borderColor: "gray", 
-            borderTop: true, 
-            borderBottom: false, 
-            borderLeft: false, 
+        h(Box, {
+            justifyContent: "center",
+            borderStyle: "single",
+            borderColor: "gray",
+            borderTop: true,
+            borderBottom: false,
+            borderLeft: false,
             borderRight: false,
             marginTop: 1
         },
@@ -638,3 +678,11 @@ export const SettingsDialog = ({ onClose, onConfigChange }) => {
         )
     );
 };
+
+export function getNextPanelOrder(panels = {}, column) {
+    const orders = Object.values(panels)
+        .filter(panel => panel?.column === column)
+        .map(panel => Number(panel.order || 0))
+        .filter(Number.isFinite);
+    return orders.length > 0 ? Math.max(...orders) + 1 : 1;
+}

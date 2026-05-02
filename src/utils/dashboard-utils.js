@@ -58,7 +58,7 @@ export const formatTime = (iso) => {
  */
 export const getSignalColor = (category, item) => {
     // 默认非信号模块为白色
-    if (!["breakout", "exhaustion", "goldenPit", "liquidation"].includes(category)) return "white";
+    if (!["breakout", "exhaustion", "goldenPit", "liquidation", "movers"].includes(category)) return "white";
 
     const sig = item.signals?.[0] || {};
     const details = sig.details || {};
@@ -92,6 +92,11 @@ export const getSignalColor = (category, item) => {
             // 衰竭：SELLER (空头衰竭) -> 见底反转(绿)；BUYER (多头衰竭) -> 见顶反转(红)
             if (title.includes("seller")) return "white";
             if (title.includes("buyer")) return "red";
+            return "white";
+
+        case "movers":
+            if (direction === "bull") return "white";
+            if (direction === "bear") return "red";
             return "white";
 
         default:

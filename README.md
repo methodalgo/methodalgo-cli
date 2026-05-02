@@ -192,8 +192,39 @@ Get multi-language crypto market news filtered by AI.
  
  **Example**: `methodalgo fred liquidity --m2`
 
- **💡 Pro Tip**: You can get your own FRED API Key from [St. Louis Fed](https://fred.stlouisfed.org/docs/api/api_key.html) and set it via:
+**💡 Pro Tip**: You can get your own FRED API Key from [St. Louis Fed](https://fred.stlouisfed.org/docs/api/api_key.html) and set it via:
  `methodalgo config set fred-api-key <your-key>`
+
+#### 🟡 Binance Market Data (`binance`)
+Access Binance spot and USD-M futures public market data without an API key.
+
+*   **Usage**: `methodalgo binance [command] [options]`
+*   **Symbol convention**:
+    *   `BTCUSDT` queries spot data by default.
+    *   `BTCUSDT.P` queries USD-M perpetual futures data by default.
+    *   `--market auto|spot|futures` is available where supported. `auto` uses the symbol suffix; explicit `spot` or `futures` overrides the suffix and sends the normalized Binance symbol (for example, `BTCUSDT.P` becomes `BTCUSDT`).
+    *   Futures-only commands (`funding`, `oi`, `sentiment`, `basis`) always query USD-M futures. `BTCUSDT` and `BTCUSDT.P` both resolve to the same futures symbol.
+*   **Subcommands**:
+    *   `price <symbol>`: Latest price, 24h change, high/low, and quote volume (`BTCUSDT` = spot, `BTCUSDT.P` = futures).
+    *   `ticker [symbol]`: 24h ticker statistics for one symbol or high-volume USDT pairs. Without a symbol it defaults to spot unless `--market futures` is provided. `--limit` limits table output; `--json` returns the raw Binance response.
+    *   `movers`: 24h gainers and losers for spot or futures. Use `--market futures` for USD-M futures movers.
+    *   `book <symbol>`: Order book depth for spot or futures based on symbol suffix.
+    *   `trades <symbol>`: Recent market trades for spot or futures based on symbol suffix.
+    *   `klines <symbol>`: OHLCV candlesticks for spot or futures based on symbol suffix.
+    *   `funding <symbol>`: Futures funding rate and mark/index price.
+    *   `oi <symbol>`: Futures open interest and recent OI history.
+    *   `sentiment <symbol>`: Futures long/short ratios and taker buy/sell ratio.
+    *   `basis <symbol>`: Futures basis and basis rate.
+    *   `exchange-info [symbol]`: Symbol rules and exchange metadata.
+    *   `raw <path>`: Allowlisted public endpoint passthrough. It only supports public endpoints that do not require API keys; account, order, trading, and signed endpoints are intentionally blocked.
+*   **Options**:
+    *   `-m, --market <auto|spot|futures>`: Select automatic symbol inference, spot, or USD-M futures where supported.
+    *   `--json`: Output raw JSON for agents and scripts. For most commands this is the direct Binance response, not the formatted table.
+
+**Examples**:
+`methodalgo binance klines BTCUSDT --interval 15m`
+`methodalgo binance klines BTCUSDT.P --interval 15m`
+`methodalgo binance movers --market futures --limit 10`
  
  #### 🆙 Update Tool (`update`)
 Update `methodalgo-cli` to the latest version.
@@ -372,8 +403,39 @@ methodalgo
  
  **示例**: `methodalgo fred dashboard`
  
- **💡 专业提示**: 您可以从 [圣路易斯联储官网](https://fred.stlouisfed.org/docs/api/api_key.html) 获取您自己的 FRED API Key，并通过以下指令设置：
+**💡 专业提示**: 您可以从 [圣路易斯联储官网](https://fred.stlouisfed.org/docs/api/api_key.html) 获取您自己的 FRED API Key，并通过以下指令设置：
  `methodalgo config set fred-api-key <your-key>`
+
+#### 🟡 币安市场数据 (`binance`)
+无需 API Key，直接查询币安现货与 U 本位合约公开市场数据。
+
+*   **用法**: `methodalgo binance [command] [options]`
+*   **Symbol 约定**:
+    *   `BTCUSDT` 默认查询现货数据。
+    *   `BTCUSDT.P` 默认查询 U 本位永续合约数据。
+    *   `--market auto|spot|futures` 可在支持的命令中使用。`auto` 按 symbol 后缀推断；显式传入 `spot` 或 `futures` 会覆盖后缀，并发送标准化后的 Binance symbol（例如 `BTCUSDT.P` 会变成 `BTCUSDT`）。
+    *   合约专属命令（`funding`、`oi`、`sentiment`、`basis`）始终查询 U 本位合约。`BTCUSDT` 和 `BTCUSDT.P` 在这些命令中会解析到同一个合约交易对。
+*   **核心子命令**:
+    *   `price <symbol>`: 最新价格、24h 涨跌、高低点与成交额 (`BTCUSDT` = 现货，`BTCUSDT.P` = 合约)。
+    *   `ticker [symbol]`: 单交易对或高成交额 USDT 交易对的 24h 行情。不传 symbol 时默认查现货列表，传 `--market futures` 时查合约列表。`--limit` 限制表格输出；`--json` 返回 Binance 原始响应。
+    *   `movers`: 现货或合约 24h 涨幅榜与跌幅榜。使用 `--market futures` 查询 U 本位合约榜单。
+    *   `book <symbol>`: 按 symbol 后缀查询现货或合约盘口深度。
+    *   `trades <symbol>`: 按 symbol 后缀查询现货或合约最近成交。
+    *   `klines <symbol>`: 按 symbol 后缀查询现货或合约 OHLCV K 线。
+    *   `funding <symbol>`: 合约资金费率、标记价与指数价。
+    *   `oi <symbol>`: 合约当前持仓量与近期 OI 历史。
+    *   `sentiment <symbol>`: 合约多空比与主动买卖量。
+    *   `basis <symbol>`: 合约基差与基差率。
+    *   `exchange-info [symbol]`: 交易对规则与交易所元数据。
+    *   `raw <path>`: 白名单内公开 endpoint 透传。仅支持无需 API Key 的公开接口；账户、订单、交易和签名接口会被阻止。
+*   **常用选项**:
+    *   `-m, --market <auto|spot|futures>`: 在支持的命令中选择自动推断、现货或 U 本位合约。
+    *   `--json`: 输出原始 JSON，便于 AI 代理和脚本解析。多数命令会直接返回 Binance 原始响应，而不是格式化表格。
+
+**示例**:
+`methodalgo binance klines BTCUSDT --interval 15m`
+`methodalgo binance klines BTCUSDT.P --interval 15m`
+`methodalgo binance movers --market futures --limit 10`
  
  #### 🆙 更新工具 (`update`)
 将 `methodalgo-cli` 更新至最新版本。

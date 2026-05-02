@@ -10,6 +10,7 @@ import signalsCmd from "./commands/signals.js";
 import dashboardCmd from "./commands/dashboard.js";
 import calendarCmd from "./commands/calendar.js";
 import fredCmd from "./commands/fred.js";
+import binanceCmd from "./commands/binance.js";
 import updateCmd from "./commands/update.js";
 import loginCmd from "./commands/login.js";
 import logoutCmd from "./commands/logout.js";
@@ -37,6 +38,7 @@ program.addCommand(signalsCmd.description(t("SIGNALS_DESC")));
 program.addCommand(dashboardCmd.description(t("DASHBOARD_DESC")));
 program.addCommand(calendarCmd.description(t("CALENDAR_DESC")));
 program.addCommand(fredCmd);
+program.addCommand(binanceCmd);
 program.addCommand(updateCmd.description(t("UPDATE_DESC")));
 program.addCommand(loginCmd);
 program.addCommand(logoutCmd);
@@ -62,7 +64,7 @@ async function main() {
         console.error(chalk.blue("ℹ️  " + t("INFO_USE_ENV_KEY")));
     }
 
-    const isExcluded = ["config", "login", "logout", "update", "--help", "-h"].some(arg => process.argv.includes(arg));
+    const isExcluded = ["config", "login", "logout", "update", "binance", "--help", "-h"].some(arg => process.argv.includes(arg));
     if (!hasEnvKey && !hasConfigKey && !isExcluded) {
         await startOnboarding(finalBanner);
     }

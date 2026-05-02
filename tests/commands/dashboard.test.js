@@ -88,6 +88,16 @@ vi.mock('../../src/class/Dashboard/SettingsDialog.js', () => ({
     SettingsDialog: 'SettingsDialog'
 }));
 
+vi.mock('../../src/class/Dashboard/CommandPalette.js', () => ({
+    CommandPalette: 'CommandPalette'
+}));
+
+vi.mock('../../src/class/Dashboard/ToastStrip.js', () => ({
+    ToastStrip: 'ToastStrip',
+    buildDashboardToast: vi.fn(() => null),
+    hasRenderableToast: vi.fn(() => false)
+}));
+
 const mockConsoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 
 describe('dashboard Command Structure', () => {
@@ -181,6 +191,44 @@ describe('dashboard Command Structure', () => {
             expect(dataFetcher.fetchMultiple).toHaveBeenCalledWith(['breaking'], false);
             expect(setCaches).toHaveBeenCalledWith({ breaking: [{ displayTitle: 'Cached news' }] });
             expect(setStatusInfo).toHaveBeenCalled();
+        });
+
+        it('should build command palette actions with panel focus commands', async () => {
+            const { buildDashboardPaletteCommands } = await import('../../src/commands/dashboard.js');
+            const refreshPanels = vi.fn();
+            const focusPanel = vi.fn();
+
+            const commands = buildDashboardPaletteCommands({
+                activePanels: ['article', 'clock', 'breaking'],
+                getPanelLabel: type => ({ article: 'Articles', breaking: 'Breaking', clock: 'Clock' }[type] || type),
+                refreshPanels,
+                focusPanel
+            });
+
+            expect(commands.map(command => command.id)).toContain('refresh');
+            expect(commands.map(command => command.id)).toContain('focus-article');
+            expect(commands.map(command => command.id)).toContain('focus-breaking');
+            expect(commands.map(command => command.id)).not.toContain('focus-clock');
+
+            commands.find(command => command.id === 'refresh').run();
+            commands.find(command => command.id === 'focus-breaking').run();
+
+            expect(refreshPanels).toHaveBeenCalled();
+            expect(focusPanel).toHaveBeenCalledWith(2);
+        });
+
+        it('should distribute panel heights exactly across a dashboard column', async () => {
+            const { distributeDashboardPanelHeights } = await import('../../src/commands/dashboard.js');
+
+            expect(distributeDashboardPanelHeights(
+                [{ type: 'article' }, { type: 'breaking' }, { type: 'onchain' }],
+                20
+            )).toEqual([7, 7, 6]);
+
+            expect(distributeDashboardPanelHeights(
+                [{ type: 'clock' }, { type: 'marketToday' }, { type: 'tokenUnlock' }],
+                20
+            )).toEqual([4, 8, 8]);
         });
     });
 

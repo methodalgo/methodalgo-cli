@@ -17,6 +17,7 @@ vi.mock("../../src/utils/fred-api.js", () => ({
 }));
 
 vi.mock("../../src/utils/price-utils.js", () => ({
+    fetchBinanceMovers: vi.fn(),
     fetchBinancePrice: vi.fn()
 }));
 
@@ -123,5 +124,32 @@ describe("DataFetcher", () => {
         fetcher.startDashboardStream(["article"], vi.fn(), onError);
         await vi.waitFor(() => expect(onError).toHaveBeenCalledTimes(1));
         expect(signedStreamRequest).toHaveBeenCalledTimes(2);
+    });
+
+    it("formats Binance movers into dashboard rows", async () => {
+        const { fetchBinanceMovers } = await import("../../src/utils/price-utils.js");
+        fetchBinanceMovers.mockResolvedValue({
+            market: "spot",
+            timestamp: "2026-05-03T00:00:00Z",
+            gainers: [{ symbol: "AAAUSDT", pctChange: 12.345, price: "1.23", volumeLabel: "$10.0M", rankType: "gainer", direction: "bull" }],
+            losers: [{ symbol: "BBBUSDT", pctChange: -9.876, price: "0.45", volumeLabel: "$2.0M", rankType: "loser", direction: "bear" }]
+        });
+
+        const { DataFetcher } = await import("../../src/class/DataFetcher.js");
+        const fetcher = new DataFetcher({ lang: "en" });
+        const result = await fetcher.fetch("binanceSpotMovers24h", true);
+
+        expect(fetchBinanceMovers).toHaveBeenCalledWith({
+            market: "spot",
+            limit: 5,
+            minQuoteVolume: 1000000,
+            signal: expect.any(AbortSignal)
+        });
+        expect(result.data.map(item => item.displayTitle)).toEqual([
+            "↑1 AAAUSDT +12.35% 1.23 Vol $10.0M",
+            "↓1 BBBUSDT -9.88% 0.45 Vol $2.0M"
+        ]);
+        expect(result.data.every(item => item.hideTime)).toBe(true);
+        expect(result.data[1].direction).toBe("bear");
     });
 });

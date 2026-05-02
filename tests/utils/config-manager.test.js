@@ -70,6 +70,8 @@ describe('config-manager Module', () => {
             expect(DEFAULT_DASHBOARD_PANELS.clock).toBeDefined();
             expect(DEFAULT_DASHBOARD_PANELS.marketToday).toBeDefined();
             expect(DEFAULT_DASHBOARD_PANELS.tokenUnlock).toBeDefined();
+            expect(DEFAULT_DASHBOARD_PANELS.binanceSpotMovers24h).toMatchObject({ enabled: false, column: 3 });
+            expect(DEFAULT_DASHBOARD_PANELS.binanceFuturesMovers24h).toMatchObject({ enabled: false, column: 3 });
         });
 
         it('should have ticker defaults with sources', async () => {

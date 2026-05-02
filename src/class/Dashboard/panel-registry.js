@@ -24,7 +24,9 @@ export const PANEL_LABEL_KEYS = {
     tokenUnlock: "LABEL_TOKEN_UNLOCK",
     fredDashboard: "LABEL_FRED_DASHBOARD",
     priceTicker: "LABEL_PRICE_TICKER",
-    economicCalendar: "LABEL_ECONOMIC_CALENDAR"
+    economicCalendar: "LABEL_ECONOMIC_CALENDAR",
+    binanceSpotMovers24h: "LABEL_BINANCE_SPOT_MOVERS_24H",
+    binanceFuturesMovers24h: "LABEL_BINANCE_FUTURES_MOVERS_24H"
 };
 
 export const PANEL_CATEGORIES = {
@@ -33,7 +35,9 @@ export const PANEL_CATEGORIES = {
     goldenPit: "goldenPit",
     liquidation: "liquidation",
     marketToday: "marketToday",
-    tokenUnlock: "tokenUnlock"
+    tokenUnlock: "tokenUnlock",
+    binanceSpotMovers24h: "movers",
+    binanceFuturesMovers24h: "movers"
 };
 
 export const PANEL_FETCHERS = {
@@ -104,5 +108,17 @@ export const PANEL_FETCHERS = {
         type: "calendar",
         countries: ["US", "EU", "JP"],
         transform: transformCalendarData
+    },
+    binanceSpotMovers24h: {
+        type: "binance-movers",
+        market: "spot",
+        limit: 5,
+        minQuoteVolume: 1000000
+    },
+    binanceFuturesMovers24h: {
+        type: "binance-movers",
+        market: "futures",
+        limit: 5,
+        minQuoteVolume: 1000000
     }
 };

@@ -71,7 +71,11 @@ describe("dashboard panel registry", () => {
     it("keeps labels, categories, and fetchers in sync for core panels", () => {
         expect(PANEL_LABEL_KEYS.breakout).toBe("LABEL_BREAKOUT");
         expect(PANEL_CATEGORIES.breakout).toBe("breakout");
+        expect(PANEL_CATEGORIES.binanceSpotMovers24h).toBe("movers");
+        expect(PANEL_CATEGORIES.binanceFuturesMovers24h).toBe("movers");
         expect(PANEL_FETCHERS.breakout.channels).toEqual(["breakout-htf", "breakout-mtf"]);
         expect(PANEL_FETCHERS.fredDashboard.type).toBe("fred");
+        expect(PANEL_FETCHERS.binanceSpotMovers24h).toMatchObject({ type: "binance-movers", market: "spot" });
+        expect(PANEL_FETCHERS.binanceFuturesMovers24h).toMatchObject({ type: "binance-movers", market: "futures" });
     });
 });
