@@ -86,6 +86,7 @@ Launch a real-time TUI (Terminal User Interface) dashboard for a global view of 
 *   **Usage**: `methodalgo dashboard` 
 *   **Controls**: Use `TAB` to switch panels, `UP/DOWN` to scroll, and `ENTER` to view details.
 *   **Live updates**: The dashboard loads an aggregated snapshot first, then keeps news and signal panels fresh through a server-side stream. If streaming is unavailable, it automatically falls back to grouped polling.
+*   **Watchlist**: Use `methodalgo dashboard --watchlist BTC,ETH,SOL` to highlight matching news and signal rows.
 
 
 --- 
@@ -266,6 +267,7 @@ methodalgo
 *   **用法**: `methodalgo dashboard` 
 *   **操作**: 使用 `TAB` 切换面板，`UP/DOWN` 滚动列表，`ENTER` 弹出详情。
 *   **实时更新**: 仪表盘会先加载聚合快照，然后通过服务端流式通道刷新新闻与信号面板；如果流式通道不可用，会自动回退到分组轮询。
+*   **关注列表**: 使用 `methodalgo dashboard --watchlist BTC,ETH,SOL` 高亮匹配的新闻与信号行。
 
 ---
 

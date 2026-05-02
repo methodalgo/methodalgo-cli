@@ -11,10 +11,13 @@ export const StatusLine = ({ statusInfo }) => {
     const hints = t("TUI_HINTS");
     const safeStatus = statusInfo || {};
     const mem = safeStatus.mem && safeStatus.mem.trim() !== "" ? safeStatus.mem : "0";
+    const connection = formatConnection(safeStatus.connection);
     
     const fixedContent = [
         h(Text, { key: "title", flexShrink: 0 }, CACHED_GRADIENT),
         h(Text, { key: "sep1", color: "gray", flexShrink: 0 }, " | "),
+        h(Text, { key: "connection", color: connection.color, flexShrink: 0 }, connection.label),
+        h(Text, { key: "sep-status", color: "gray", flexShrink: 0 }, " | "),
         h(Text, { key: "updated", color: "cyan", flexShrink: 0 }, `📡 Updated: ${safeStatus.time || "--"}`),
         h(Text, { key: "sep2", color: "gray", flexShrink: 0 }, " | Mem: "),
         h(Text, { key: "mem", flexShrink: 0 }, `${mem} MB`)
@@ -45,3 +48,18 @@ export const StatusLine = ({ statusInfo }) => {
         )
     );
 };
+
+function formatConnection(connection) {
+    switch (connection) {
+        case "live":
+            return { label: "LIVE", color: "green" };
+        case "polling":
+            return { label: "POLLING", color: "yellow" };
+        case "stale":
+            return { label: "STALE", color: "red" };
+        case "error":
+            return { label: "ERROR", color: "red" };
+        default:
+            return { label: "LOADING", color: "gray" };
+    }
+}

@@ -127,6 +127,8 @@ describe('dashboard Command Structure', () => {
             expect(dataFetcher.startDashboardStream).toHaveBeenCalledWith(['article'], handlePanelUpdate, expect.any(Function));
             expect(dataFetcher.startAutoRefresh).toHaveBeenCalledWith(['article'], handlePanelUpdate);
             expect(setStatusInfo).toHaveBeenCalled();
+            expect(setStatusInfo.mock.calls[0][0]({})).toEqual({ connection: 'live', error: null });
+            expect(setStatusInfo.mock.calls[1][0]({ connection: 'live' })).toEqual({ connection: 'polling', error: 'stream ended' });
         });
 
         it('should start polling immediately when dashboard stream is unavailable', async () => {
@@ -141,6 +143,24 @@ describe('dashboard Command Structure', () => {
 
             expect(streamStarted).toBe(false);
             expect(dataFetcher.startAutoRefresh).toHaveBeenCalledWith(['priceTicker'], handlePanelUpdate);
+            expect(dataFetcher.startAutoRefresh).toHaveBeenCalledTimes(1);
+        });
+
+        it('should keep polling non-stream panels when stream panels are active', async () => {
+            const { startDashboardLiveUpdates } = await import('../../src/commands/dashboard.js');
+            const dataFetcher = {
+                getDashboardStreamPanels: vi.fn(() => ['article']),
+                getDashboardPollingPanels: vi.fn(() => ['priceTicker']),
+                startDashboardStream: vi.fn(() => true),
+                startAutoRefresh: vi.fn()
+            };
+            const handlePanelUpdate = vi.fn();
+
+            const streamStarted = startDashboardLiveUpdates(dataFetcher, ['article', 'priceTicker'], handlePanelUpdate, vi.fn());
+
+            expect(streamStarted).toBe(true);
+            expect(dataFetcher.startAutoRefresh).toHaveBeenCalledWith(['priceTicker'], handlePanelUpdate);
+            expect(dataFetcher.startDashboardStream).toHaveBeenCalledWith(['article'], handlePanelUpdate, expect.any(Function));
         });
     });
 

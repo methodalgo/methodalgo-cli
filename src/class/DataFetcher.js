@@ -571,6 +571,14 @@ export class DataFetcher {
     _canFetchViaDashboardSnapshot(panelType) {
         return DASHBOARD_SNAPSHOT_PANELS.has(panelType) && this.fetchers.has(panelType);
     }
+
+    getDashboardStreamPanels(panelTypes) {
+        return panelTypes.filter(type => this._canFetchViaDashboardSnapshot(type));
+    }
+
+    getDashboardPollingPanels(panelTypes) {
+        return panelTypes.filter(type => !this._canFetchViaDashboardSnapshot(type));
+    }
     
     async _fetchDashboardSnapshot(panelTypes, force = false) {
         const result = await signedRequest("/cli/dashboard/snapshot", {

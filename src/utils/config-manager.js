@@ -58,6 +58,9 @@ const DEFAULT_DASHBOARD = {
     ticker: { ...DEFAULT_DASHBOARD_TICKER },
     theme: { ...DEFAULT_DASHBOARD_THEME },
     keybindings: { ...DEFAULT_DASHBOARD_KEYBINDINGS },
+    watchlist: {
+        symbols: []
+    },
     cache: {
         enabled: true,
         ttl: 3600000

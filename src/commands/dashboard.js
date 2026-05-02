@@ -20,14 +20,14 @@ import {
 
 const h = React.createElement;
 
-const Dashboard = () => {
+const Dashboard = ({ watchlist = [] }) => {
     const { exit } = useApp();
     const [loading, setLoading] = useState(true);
     const [focusIdx, setFocusIdx] = useState(0);
     const [dialog, setDialog] = useState(null);
     const [showSettings, setShowSettings] = useState(false);
     const [caches, setCaches] = useState({});
-    const [statusInfo, setStatusInfo] = useState({ time: "", mem: "0", error: null });
+    const [statusInfo, setStatusInfo] = useState({ time: "", mem: "0", error: null, connection: "loading" });
     const [config, setConfig] = useState(() => getDashboardConfig());
     const [tickerEnabled, setTickerEnabled] = useState(() => getTickerConfig().enabled);
     
@@ -107,14 +107,15 @@ const Dashboard = () => {
             
             const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
             const fetchError = Object.values(errors)[0];
-            setStatusInfo({
+            setStatusInfo(prev => ({
                 time: new Date().toLocaleTimeString(),
                 mem,
-                error: firstError || fetchError?.message || null
-            });
+                error: firstError || fetchError?.message || null,
+                connection: firstError || fetchError ? "error" : prev.connection
+            }));
             
         } catch (e) {
-            setStatusInfo(prev => ({ ...prev, error: e.message }));
+            setStatusInfo(prev => ({ ...prev, error: e.message, connection: "error" }));
         } finally {
             setLoading(false);
         }
@@ -128,10 +129,13 @@ const Dashboard = () => {
         const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
         setStatusInfo(prev => {
             if (result?.error) {
-                return { ...prev, time: new Date().toLocaleTimeString(), mem, error: result.error };
+                return { ...prev, time: new Date().toLocaleTimeString(), mem, error: result.error, connection: result.stale ? "stale" : "error" };
             }
             if (result?.data && !result.stale) {
                 return { ...prev, time: new Date().toLocaleTimeString(), mem, error: null };
+            }
+            if (result?.stale) {
+                return { ...prev, time: new Date().toLocaleTimeString(), mem, connection: "stale" };
             }
             return { ...prev, mem };
         });
@@ -196,11 +200,12 @@ const Dashboard = () => {
             
             const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
             const fetchError = Object.values(errors)[0];
-            setStatusInfo({
+            setStatusInfo(prev => ({
                 time: new Date().toLocaleTimeString(),
                 mem,
-                error: firstError || fetchError?.message || null
-            });
+                error: firstError || fetchError?.message || null,
+                connection: firstError || fetchError ? "error" : prev.connection
+            }));
         });
     }, []);
 
@@ -306,7 +311,8 @@ const Dashboard = () => {
             items,
             focused: isFocused,
             onSelect: idx => openDetail(panelType, idx),
-            maxVisible
+            maxVisible,
+            watchlist
         });
     };
 
@@ -321,7 +327,8 @@ const Dashboard = () => {
             h(TickerBar, {
                 key: "ticker",
                 enabled: tickerEnabled,
-                config: config.ticker
+                config: config.ticker,
+                dashboardCaches: caches
             })
         ));
     }
@@ -413,22 +420,47 @@ const Dashboard = () => {
 const dashboardCmd = new Command("dashboard")
     .description(t("DASHBOARD_DESC"))
     .alias("top")
-    .action(() => render(h(Dashboard)));
+    .option("-w, --watchlist <symbols>", t("OPT_WATCHLIST_DESC"))
+    .action((options) => {
+        const storedSymbols = getDashboardConfig().watchlist?.symbols;
+        const configWatchlist = Array.isArray(storedSymbols) ? storedSymbols : [];
+        const watchlist = [...new Set(parseWatchlist(options.watchlist).concat(configWatchlist.map(symbol => String(symbol).toUpperCase())))];
+        render(h(Dashboard, { watchlist }));
+    });
 
 export default dashboardCmd;
 
 export function startDashboardLiveUpdates(dataFetcher, enabledPanels, handlePanelUpdate, setStatusInfo) {
-    const startPollingFallback = () => {
-        dataFetcher.startAutoRefresh(enabledPanels, handlePanelUpdate);
+    const streamPanels = dataFetcher.getDashboardStreamPanels
+        ? dataFetcher.getDashboardStreamPanels(enabledPanels)
+        : enabledPanels;
+    const pollingPanels = dataFetcher.getDashboardPollingPanels
+        ? dataFetcher.getDashboardPollingPanels(enabledPanels)
+        : [];
+
+    const startPollingFallback = (panels = enabledPanels) => {
+        dataFetcher.startAutoRefresh(panels, handlePanelUpdate);
     };
-    const streamStarted = dataFetcher.startDashboardStream(
-        enabledPanels,
+    if (pollingPanels.length > 0) startPollingFallback(pollingPanels);
+    if (streamPanels.length > 0 && setStatusInfo) setStatusInfo(prev => ({ ...prev, connection: "live", error: null }));
+    const streamStarted = streamPanels.length > 0 && dataFetcher.startDashboardStream(
+        streamPanels,
         handlePanelUpdate,
         error => {
-            if (setStatusInfo) setStatusInfo(prev => ({ ...prev, error: error.message }));
-            startPollingFallback();
+            if (setStatusInfo) setStatusInfo(prev => ({ ...prev, connection: "polling", error: error.message }));
+            startPollingFallback(enabledPanels);
         }
     );
-    if (!streamStarted) startPollingFallback();
+    if (!streamStarted) {
+        if (setStatusInfo) setStatusInfo(prev => ({ ...prev, connection: "polling" }));
+        startPollingFallback(enabledPanels);
+    }
     return streamStarted;
+}
+
+export function parseWatchlist(value) {
+    return String(value || "")
+        .split(",")
+        .map(symbol => symbol.trim().toUpperCase())
+        .filter(Boolean);
 }

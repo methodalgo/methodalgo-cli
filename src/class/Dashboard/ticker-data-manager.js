@@ -18,7 +18,10 @@ export class TickerDataManager {
         this.fetching = new Set();
     }
 
-    async fetchSource(source) {
+    async fetchSource(source, _sourceIndex = 0, dashboardCaches = null) {
+        const dashboardData = this._getDashboardCacheData(source, dashboardCaches);
+        if (dashboardData) return dashboardData;
+
         const cacheKey = this._getCacheKey(source);
         const cached = this.cache.get(cacheKey);
         if (cached && Date.now() - cached.timestamp < 30000) {
@@ -37,6 +40,19 @@ export class TickerDataManager {
         } finally {
             this.fetching.delete(cacheKey);
         }
+    }
+
+    _getDashboardCacheData(source, dashboardCaches) {
+        if (!dashboardCaches || source.type !== TICKER_SOURCE_TYPES.NEWS) return null;
+        const panelType = source.typeFilter || "breaking";
+        const items = dashboardCaches[panelType];
+        if (!Array.isArray(items) || items.length === 0) return null;
+        const limit = Math.min(source.limit || 1, 5);
+        return items.slice(0, limit).map(item => ({
+            title: item.displayTitle || item.title || "",
+            url: item.url,
+            timestamp: item.timestamp || item.publish_date
+        })).filter(item => item.title);
     }
 
     formatSource(source, data) {

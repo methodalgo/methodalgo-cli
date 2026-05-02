@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("../../../src/utils/api.js", () => ({
+    signedRequest: vi.fn()
+}));
+
 vi.mock("../../../src/utils/fred-api.js", () => ({
     getFredApiKey: vi.fn(() => ""),
     getSeriesObservations: vi.fn()
-}));
-
-vi.mock("../../../src/utils/api.js", () => ({
-    signedRequest: vi.fn()
 }));
 
 vi.mock("../../../src/utils/price-utils.js", () => ({
@@ -56,5 +56,28 @@ describe("TickerDataManager", () => {
         expect(formatted).toEqual([
             expect.objectContaining({ text: "News: ETF flows rise" })
         ]);
+    });
+
+    it("uses dashboard cache for news ticker sources before calling the API", async () => {
+        const { signedRequest } = await import("../../../src/utils/api.js");
+        const { TickerDataManager } = await import("../../../src/class/Dashboard/ticker-data-manager.js");
+        const manager = new TickerDataManager("en");
+
+        const result = await manager.fetchSource(
+            { type: "news", typeFilter: "breaking", limit: 2 },
+            0,
+            {
+                breaking: [
+                    { displayTitle: "BTC ETF flow update", url: "https://example.com/a", timestamp: "2026-05-03T00:00:00Z" },
+                    { displayTitle: "SOL unlock watch", url: "https://example.com/b", timestamp: "2026-05-03T00:01:00Z" }
+                ]
+            }
+        );
+
+        expect(result).toEqual([
+            { title: "BTC ETF flow update", url: "https://example.com/a", timestamp: "2026-05-03T00:00:00Z" },
+            { title: "SOL unlock watch", url: "https://example.com/b", timestamp: "2026-05-03T00:01:00Z" }
+        ]);
+        expect(signedRequest).not.toHaveBeenCalled();
     });
 });

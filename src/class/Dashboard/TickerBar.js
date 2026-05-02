@@ -6,7 +6,7 @@ import { TickerDataManager, TICKER_SOURCE_TYPES } from "./ticker-data-manager.js
 
 const h = React.createElement;
 
-export const TickerBar = ({ enabled = true, config = null, onToggle = null }) => {
+export const TickerBar = ({ enabled = true, config = null, onToggle = null, dashboardCaches = null }) => {
     const termCols = process.stdout.columns || 120;
     const placeholder = " Loading market data... ".padEnd(termCols, " ");
     
@@ -30,7 +30,7 @@ export const TickerBar = ({ enabled = true, config = null, onToggle = null }) =>
         const results = await Promise.allSettled(
             enabledSources.map(async (source, i) => {
                 try {
-                    const data = await tickerDataManager.current.fetchSource(source, i);
+                    const data = await tickerDataManager.current.fetchSource(source, i, dashboardCaches);
                     const formatted = tickerDataManager.current.formatSource(source, data);
                     return formatted;
                 } catch (e) {
@@ -61,7 +61,7 @@ export const TickerBar = ({ enabled = true, config = null, onToggle = null }) =>
             setOffset(0);
             setTickerText(fullText + separator + fullText);
         }
-    }, [actualConfig]);
+    }, [actualConfig, dashboardCaches]);
 
     useEffect(() => {
         if (enabled) {
