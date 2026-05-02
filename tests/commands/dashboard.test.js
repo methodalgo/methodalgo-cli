@@ -162,6 +162,26 @@ describe('dashboard Command Structure', () => {
             expect(dataFetcher.startAutoRefresh).toHaveBeenCalledWith(['priceTicker'], handlePanelUpdate);
             expect(dataFetcher.startDashboardStream).toHaveBeenCalledWith(['article'], handlePanelUpdate, expect.any(Function));
         });
+
+        it('should refresh dashboard panels without forcing upstream fetches by default', async () => {
+            const { refreshDashboardPanels } = await import('../../src/commands/dashboard.js');
+            const dataFetcher = {
+                fetchMultiple: vi.fn().mockResolvedValue({
+                    results: {
+                        breaking: { data: [{ displayTitle: 'Cached news' }] }
+                    },
+                    errors: {}
+                })
+            };
+            const setCaches = vi.fn();
+            const setStatusInfo = vi.fn();
+
+            await refreshDashboardPanels(dataFetcher, ['breaking'], setCaches, setStatusInfo);
+
+            expect(dataFetcher.fetchMultiple).toHaveBeenCalledWith(['breaking'], false);
+            expect(setCaches).toHaveBeenCalledWith({ breaking: [{ displayTitle: 'Cached news' }] });
+            expect(setStatusInfo).toHaveBeenCalled();
+        });
     });
 
     describe('Panel configuration constants', () => {

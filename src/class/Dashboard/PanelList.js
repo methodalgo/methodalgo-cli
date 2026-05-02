@@ -3,9 +3,11 @@ import { Box, Text, useInput } from "ink";
 import { gradientText, cleanText, formatTime, getSignalColor } from "../../utils/dashboard-utils.js";
 
 const h = React.createElement;
+const NEW_EVENT_WINDOW_MS = 60000;
 
 export const PanelList = ({ category, label, items, focused, onSelect, maxVisible = 6, watchlist = [] }) => {
     const actualItems = Array.isArray(items) ? items : [];
+    const [now, setNow] = useState(() => Date.now());
     const [selectedIdx, setSelectedIdx] = useState(0);
     const [selectedKey, setSelectedKey] = useState(() => getDashboardItemKey(actualItems[0]));
     const [scrollTop, setScrollTop] = useState(0);
@@ -50,6 +52,14 @@ export const PanelList = ({ category, label, items, focused, onSelect, maxVisibl
     }, [items, maxVisible, selectedKey]);
 
     const visibleItems = actualItems.slice(scrollTop, scrollTop + maxVisible);
+
+    useEffect(() => {
+        if (!hasRecentDashboardItems(visibleItems, now)) return undefined;
+        const timer = setInterval(() => setNow(Date.now()), 1000);
+        if (typeof timer.unref === "function") timer.unref();
+        return () => clearInterval(timer);
+    }, [visibleItems, now]);
+
     const hasMore = actualItems.length > scrollTop + maxVisible;
     const hasLess = scrollTop > 0;
 
@@ -73,7 +83,12 @@ export const PanelList = ({ category, label, items, focused, onSelect, maxVisibl
                 if (!title) return null;
                 
                 const matches = getWatchlistMatches(item, watchlist);
-                const prefix = matches.length > 0 ? `[WATCH ${matches.join(",")}] ` : "";
+                const newLabel = getNewEventLabel(item, now);
+                const prefixParts = [
+                    newLabel,
+                    matches.length > 0 ? `[WATCH ${matches.join(",")}]` : ""
+                ].filter(Boolean);
+                const prefix = prefixParts.length > 0 ? `${prefixParts.join(" ")} ` : "";
                 const textColor = matches.length > 0 ? "yellow" : category ? getSignalColor(category, item) : "white";
                 
                 return h(Box, { key: getDashboardItemKey(item) || realIdx, width: "100%", overflow: "hidden" },
@@ -115,6 +130,26 @@ export function getWatchlistMatches(item, watchlist = []) {
         .filter(Boolean)
         .filter((symbol, idx, arr) => arr.indexOf(symbol) === idx)
         .filter(symbol => symbolMatchesSource(symbol, source));
+}
+
+export function getNewEventLabel(item, now = Date.now()) {
+    const timestamp = getDashboardItemTime(item);
+    if (!timestamp) return "";
+    const ageMs = now - timestamp;
+    if (ageMs < 0 || ageMs > NEW_EVENT_WINDOW_MS) return "";
+    return `[NEW ${Math.max(0, Math.floor(ageMs / 1000))}s]`;
+}
+
+export function hasRecentDashboardItems(items, now = Date.now()) {
+    return Array.isArray(items) && items.some(item => getNewEventLabel(item, now));
+}
+
+function getDashboardItemTime(item) {
+    const raw = item?.publish_date || item?.timestamp || item?.ts || item?.updatedAt;
+    if (!raw) return 0;
+    if (typeof raw === "number") return raw < 10000000000 ? raw * 1000 : raw;
+    const parsed = Date.parse(raw);
+    return Number.isNaN(parsed) ? 0 : parsed;
 }
 
 function normalizeWatchSymbol(symbol) {

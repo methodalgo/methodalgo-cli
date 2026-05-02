@@ -89,31 +89,7 @@ const Dashboard = ({ watchlist = [] }) => {
     const refreshAll = useCallback(async () => {
         try {
             const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
-            const { results, errors } = await dataFetcherRef.current.fetchMultiple(enabledPanels, false);
-            
-            const newCaches = {};
-            let firstError = null;
-            
-            for (const [type, result] of Object.entries(results)) {
-                if (result?.data) {
-                    newCaches[type] = result.data;
-                }
-                if (result?.error && !firstError) {
-                    firstError = result.error;
-                }
-            }
-            
-            setCaches(newCaches);
-            
-            const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
-            const fetchError = Object.values(errors)[0];
-            setStatusInfo(prev => ({
-                time: new Date().toLocaleTimeString(),
-                mem,
-                error: firstError || fetchError?.message || null,
-                connection: firstError || fetchError ? "error" : prev.connection
-            }));
-            
+            await refreshDashboardPanels(dataFetcherRef.current, enabledPanels, setCaches, setStatusInfo);
         } catch (e) {
             setStatusInfo(prev => ({ ...prev, error: e.message, connection: "error" }));
         } finally {
@@ -182,31 +158,9 @@ const Dashboard = ({ watchlist = [] }) => {
         startLiveUpdates(enabledPanels);
     }, [startLiveUpdates]);
 
-    const forceRefresh = useCallback(() => {
+    const refreshPanels = useCallback(() => {
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
-        dataFetcherRef.current.fetchMultiple(enabledPanels, true).then(({ results, errors }) => {
-            const newCaches = {};
-            let firstError = null;
-            
-            for (const [type, result] of Object.entries(results)) {
-                if (result?.data) {
-                    newCaches[type] = result.data;
-                }
-                if (result?.error && !firstError) {
-                    firstError = result.error;
-                }
-            }
-            setCaches(newCaches);
-            
-            const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
-            const fetchError = Object.values(errors)[0];
-            setStatusInfo(prev => ({
-                time: new Date().toLocaleTimeString(),
-                mem,
-                error: firstError || fetchError?.message || null,
-                connection: firstError || fetchError ? "error" : prev.connection
-            }));
-        });
+        refreshDashboardPanels(dataFetcherRef.current, enabledPanels, setCaches, setStatusInfo);
     }, []);
 
     useInput((input, key) => {
@@ -224,7 +178,7 @@ const Dashboard = ({ watchlist = [] }) => {
         }
         
         if (input === "r") {
-            forceRefresh();
+            refreshPanels();
             return;
         }
         
@@ -456,6 +410,28 @@ export function startDashboardLiveUpdates(dataFetcher, enabledPanels, handlePane
         startPollingFallback(enabledPanels);
     }
     return streamStarted;
+}
+
+export async function refreshDashboardPanels(dataFetcher, enabledPanels, setCaches, setStatusInfo, force = false) {
+    const { results, errors } = await dataFetcher.fetchMultiple(enabledPanels, force);
+    const newCaches = {};
+    let firstError = null;
+
+    for (const [type, result] of Object.entries(results)) {
+        if (result?.data) newCaches[type] = result.data;
+        if (result?.error && !firstError) firstError = result.error;
+    }
+    setCaches(newCaches);
+
+    const mem = (process.memoryUsage().rss / 1024 / 1024).toFixed(1);
+    const fetchError = Object.values(errors)[0];
+    setStatusInfo(prev => ({
+        time: new Date().toLocaleTimeString(),
+        mem,
+        error: firstError || fetchError?.message || null,
+        connection: firstError || fetchError ? "error" : prev.connection
+    }));
+    return { results, errors };
 }
 
 export function parseWatchlist(value) {
