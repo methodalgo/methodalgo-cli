@@ -1,9 +1,22 @@
-import { signedRequest } from "../utils/api.js";
+import { signedRequest, signedStreamRequest } from "../utils/api.js";
 import { getLang, t } from "../utils/i18n.js";
 import config from "../utils/config-manager.js";
 import * as fred from "../utils/fred-api.js";
 import { fetchBinancePrice } from "../utils/price-utils.js";
 import { PANEL_FETCHERS } from "./Dashboard/panel-registry.js";
+
+const DASHBOARD_SNAPSHOT_PANELS = new Set([
+    "article",
+    "breaking",
+    "onchain",
+    "report",
+    "breakout",
+    "exhaustion",
+    "goldenPit",
+    "liquidation",
+    "marketToday",
+    "tokenUnlock"
+]);
 
 export class DataFetcher {
     constructor(options = {}) {
@@ -13,6 +26,7 @@ export class DataFetcher {
         this.cache = new Map();
         this.stats = new Map();
         this.abortControllers = new Map();
+        this.dashboardStreamController = null;
         
         this._initFetchers();
     }
@@ -82,24 +96,7 @@ export class DataFetcher {
             }
             
             const transformed = fetcher.transform ? fetcher.transform(data, this.lang) : data;
-            
-            this.cache.set(panelType, {
-                data: transformed,
-                timestamp: now,
-                hash: this._computeHash(transformed)
-            });
-            
-            fetcher.lastFetch = now;
-            fetcher.lastError = null;
-            fetcher.consecutiveErrors = 0;
-            
-            this._updateStats(panelType, true);
-            
-            return {
-                data: transformed,
-                fromCache: false,
-                timestamp: now
-            };
+            return this._storePanelResult(panelType, transformed, now);
             
         } catch (error) {
             if (error.name === "AbortError") {
@@ -370,8 +367,31 @@ export class DataFetcher {
     async fetchMultiple(panelTypes, force = false) {
         const results = {};
         const errors = {};
+        const snapshotPanels = panelTypes.filter(type => this._canFetchViaDashboardSnapshot(type));
+        const directPanels = panelTypes.filter(type => !this._canFetchViaDashboardSnapshot(type));
         
-        await Promise.all(panelTypes.map(async (type) => {
+        if (snapshotPanels.length > 0) {
+            try {
+                const snapshot = await this._fetchDashboardSnapshot(snapshotPanels, force);
+                for (const panelType of snapshotPanels) {
+                    const fetcher = this.fetchers.get(panelType);
+                    const raw = snapshot.data?.[panelType];
+                    if (raw === undefined) {
+                        errors[panelType] = new Error(snapshot.errors?.[panelType] || "Missing dashboard snapshot panel");
+                        continue;
+                    }
+                    const transformed = fetcher.transform ? fetcher.transform(raw, this.lang) : raw;
+                    results[panelType] = this._storePanelResult(panelType, transformed, Date.now());
+                }
+                for (const [panelType, message] of Object.entries(snapshot.errors || {})) {
+                    if (!results[panelType]) errors[panelType] = new Error(message);
+                }
+            } catch (e) {
+                directPanels.push(...snapshotPanels);
+            }
+        }
+        
+        await Promise.all(directPanels.map(async (type) => {
             try {
                 results[type] = await this.fetch(type, force);
             } catch (e) {
@@ -385,52 +405,98 @@ export class DataFetcher {
     startAutoRefresh(panelTypes, onUpdate) {
         this.stopAutoRefresh();
         
-        const scheduleNext = (panelType, interval) => {
+        const scheduleNext = (timerKey, groupedPanels, interval) => {
             if (interval <= 0) return;
             
             const timer = setTimeout(async () => {
                 try {
-                    const result = await this.fetch(panelType, false);
-                    if (onUpdate && result) {
-                        if (!result.fromCache || result.error) {
-                            onUpdate(panelType, result);
+                    const { results, errors } = await this.fetchMultiple(groupedPanels, false);
+                    if (onUpdate) {
+                        for (const [panelType, result] of Object.entries(results)) {
+                            if (result && (!result.fromCache || result.error)) {
+                                onUpdate(panelType, result);
+                            }
+                        }
+                        for (const [panelType, error] of Object.entries(errors)) {
+                            onUpdate(panelType, { error: error.message });
                         }
                     }
                 } catch (e) {
-                    console.debug(`[DataFetcher] Auto-refresh error for ${panelType}:`, e.message);
+                    console.debug(`[DataFetcher] Auto-refresh error for ${timerKey}:`, e.message);
                     if (onUpdate) {
-                        onUpdate(panelType, { error: e.message });
+                        for (const panelType of groupedPanels) onUpdate(panelType, { error: e.message });
                     }
                 } finally {
-                    if (this.timers.get(panelType) === timer) {
-                        scheduleNext(panelType, interval);
+                    const current = this.timers.get(timerKey);
+                    if (current?.timer === timer) {
+                        scheduleNext(timerKey, groupedPanels, interval);
                     }
                 }
             }, interval);
             
-            this.timers.set(panelType, timer);
+            this.timers.set(timerKey, { timer, panelTypes: groupedPanels });
         };
         
+        const groups = new Map();
         for (const panelType of panelTypes) {
             const panelConfig = config.get(`dashboard.panels.${panelType}`) || {};
             const interval = panelConfig.refreshInterval || 60000;
             
             if (interval > 0) {
-                scheduleNext(panelType, interval);
+                const groupedPanels = groups.get(interval) || [];
+                groupedPanels.push(panelType);
+                groups.set(interval, groupedPanels);
             }
+        }
+        
+        for (const [interval, groupedPanels] of groups.entries()) {
+            scheduleNext(`interval:${interval}:${groupedPanels.join(",")}`, groupedPanels, interval);
+        }
+    }
+    
+    startDashboardStream(panelTypes, onUpdate, onError = null) {
+        const streamPanels = panelTypes.filter(type => this._canFetchViaDashboardSnapshot(type));
+        if (streamPanels.length === 0) return false;
+        
+        this.stopDashboardStream();
+        const controller = new AbortController();
+        this.dashboardStreamController = controller;
+        
+        this._consumeDashboardStream(streamPanels, onUpdate, controller)
+            .catch(error => {
+                if (controller.signal.aborted) return;
+                console.debug("[DataFetcher] Dashboard stream error:", error.message);
+                this.dashboardStreamController = null;
+                if (onError) onError(error);
+            });
+        
+        return true;
+    }
+    
+    stopDashboardStream() {
+        if (this.dashboardStreamController) {
+            this.dashboardStreamController.abort();
+            this.dashboardStreamController = null;
         }
     }
     
     stopAutoRefresh(panelTypes = null) {
-        const types = panelTypes || [...this.timers.keys()];
+        if (!panelTypes) this.stopDashboardStream();
+        const requested = panelTypes ? new Set(panelTypes) : null;
+        const types = [...this.timers.keys()];
         
-        for (const type of types) {
-            const timer = this.timers.get(type);
-            if (timer) {
-                clearInterval(timer);
-                this.timers.delete(type);
+        for (const key of types) {
+            const entry = this.timers.get(key);
+            const entryPanels = entry?.panelTypes || [key];
+            if (requested && !entryPanels.some(type => requested.has(type))) continue;
+            if (entry) {
+                clearTimeout(entry.timer || entry);
+                this.timers.delete(key);
             }
-            
+        }
+        
+        const abortTypes = panelTypes || [...this.abortControllers.keys()];
+        for (const type of abortTypes) {
             const abortController = this.abortControllers.get(type);
             if (abortController) {
                 abortController.abort();
@@ -483,6 +549,112 @@ export class DataFetcher {
         this.stats.set(panelType, existing);
     }
     
+    _storePanelResult(panelType, data, timestamp = Date.now()) {
+        const fetcher = this.fetchers.get(panelType);
+        this.cache.set(panelType, {
+            data,
+            timestamp,
+            hash: this._computeHash(data)
+        });
+        
+        if (fetcher) {
+            fetcher.lastFetch = timestamp;
+            fetcher.lastError = null;
+            fetcher.consecutiveErrors = 0;
+        }
+        
+        this._updateStats(panelType, true);
+        
+        return {
+            data,
+            fromCache: false,
+            timestamp
+        };
+    }
+    
+    _canFetchViaDashboardSnapshot(panelType) {
+        return DASHBOARD_SNAPSHOT_PANELS.has(panelType) && this.fetchers.has(panelType);
+    }
+    
+    async _fetchDashboardSnapshot(panelTypes, force = false) {
+        const result = await signedRequest("/cli/dashboard/snapshot", {
+            panels: panelTypes.join(","),
+            lang: this.lang,
+            force: force ? "1" : undefined
+        });
+        if (!result.data?.status) {
+            throw new Error(result.data?.message || "Dashboard snapshot failed");
+        }
+        return result.data;
+    }
+    
+    async _consumeDashboardStream(panelTypes, onUpdate, controller) {
+        const response = await signedStreamRequest("/cli/dashboard/stream", {
+            panels: panelTypes.join(","),
+            lang: this.lang
+        }, { signal: controller.signal });
+        
+        if (!response.ok) {
+            throw new Error(`Dashboard stream failed with status ${response.status}`);
+        }
+        if (!response.body?.getReader) {
+            throw new Error("Dashboard stream is not readable");
+        }
+        
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        
+        while (!controller.signal.aborted) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split(/\n\n/);
+            buffer = parts.pop() || "";
+            for (const part of parts) {
+                this._handleDashboardStreamEvent(part, onUpdate);
+            }
+        }
+    }
+    
+    _handleDashboardStreamEvent(rawEvent, onUpdate) {
+        const event = this._parseSseEvent(rawEvent);
+        if (!event.data || event.event === "ready") return;
+        
+        if (event.event === "snapshot") {
+            for (const [panelType, raw] of Object.entries(event.data.data || {})) {
+                this._emitRawPanelUpdate(panelType, raw, onUpdate);
+            }
+            return;
+        }
+        
+        if (event.event === "update" && event.data.panel) {
+            this._emitRawPanelUpdate(event.data.panel, event.data.data, onUpdate);
+        }
+    }
+    
+    _emitRawPanelUpdate(panelType, raw, onUpdate) {
+        const fetcher = this.fetchers.get(panelType);
+        if (!fetcher || raw === undefined) return;
+        const transformed = fetcher.transform ? fetcher.transform(raw, this.lang) : raw;
+        const result = this._storePanelResult(panelType, transformed, Date.now());
+        if (onUpdate) onUpdate(panelType, result);
+    }
+    
+    _parseSseEvent(rawEvent) {
+        let event = "message";
+        const dataLines = [];
+        for (const line of rawEvent.split(/\r?\n/)) {
+            if (line.startsWith("event:")) event = line.slice(6).trim();
+            if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+        }
+        try {
+            return { event, data: dataLines.length > 0 ? JSON.parse(dataLines.join("\n")) : null };
+        } catch {
+            return { event, data: null };
+        }
+    }
+    
     _computeHash(data) {
         if (!data) return "";
         
@@ -515,6 +687,7 @@ export class DataFetcher {
         this.fetchers.clear();
         this.stats.clear();
         this.abortControllers.clear();
+        this.stopDashboardStream();
     }
 }
 

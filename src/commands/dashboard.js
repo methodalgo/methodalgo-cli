@@ -141,7 +141,18 @@ const Dashboard = () => {
         refreshAll();
         
         const enabledPanels = getEnabledPanels().filter(p => p !== "clock");
-        dataFetcherRef.current.startAutoRefresh(enabledPanels, handlePanelUpdate);
+        const startPollingFallback = () => {
+            dataFetcherRef.current.startAutoRefresh(enabledPanels, handlePanelUpdate);
+        };
+        const streamStarted = dataFetcherRef.current.startDashboardStream(
+            enabledPanels,
+            handlePanelUpdate,
+            error => {
+                setStatusInfo(prev => ({ ...prev, error: error.message }));
+                startPollingFallback();
+            }
+        );
+        if (!streamStarted) startPollingFallback();
         
         return () => {
             dataFetcherRef.current.stopAutoRefresh();

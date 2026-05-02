@@ -1,17 +1,17 @@
 import Conf from "conf";
 
 const DEFAULT_DASHBOARD_PANELS = {
-    article: { enabled: true, column: 1, order: 1, refreshInterval: 120000, maxVisible: null },
-    breaking: { enabled: true, column: 1, order: 2, refreshInterval: 60000, maxVisible: null },
-    onchain: { enabled: true, column: 1, order: 3, refreshInterval: 300000, maxVisible: null },
-    report: { enabled: true, column: 1, order: 4, refreshInterval: 600000, maxVisible: null },
-    breakout: { enabled: true, column: 2, order: 1, refreshInterval: 60000, maxVisible: null },
-    exhaustion: { enabled: true, column: 2, order: 2, refreshInterval: 60000, maxVisible: null },
-    goldenPit: { enabled: true, column: 2, order: 3, refreshInterval: 60000, maxVisible: null },
-    liquidation: { enabled: true, column: 2, order: 4, refreshInterval: 60000, maxVisible: null },
+    article: { enabled: true, column: 1, order: 1, refreshInterval: 60000, maxVisible: null },
+    breaking: { enabled: true, column: 1, order: 2, refreshInterval: 10000, maxVisible: null },
+    onchain: { enabled: true, column: 1, order: 3, refreshInterval: 30000, maxVisible: null },
+    report: { enabled: true, column: 1, order: 4, refreshInterval: 300000, maxVisible: null },
+    breakout: { enabled: true, column: 2, order: 1, refreshInterval: 10000, maxVisible: null },
+    exhaustion: { enabled: true, column: 2, order: 2, refreshInterval: 10000, maxVisible: null },
+    goldenPit: { enabled: true, column: 2, order: 3, refreshInterval: 10000, maxVisible: null },
+    liquidation: { enabled: true, column: 2, order: 4, refreshInterval: 10000, maxVisible: null },
     clock: { enabled: true, column: 3, order: 1, refreshInterval: 1000, maxVisible: null },
-    marketToday: { enabled: true, column: 3, order: 2, refreshInterval: 600000, maxVisible: null },
-    tokenUnlock: { enabled: true, column: 3, order: 3, refreshInterval: 600000, maxVisible: null },
+    marketToday: { enabled: true, column: 3, order: 2, refreshInterval: 30000, maxVisible: null },
+    tokenUnlock: { enabled: true, column: 3, order: 3, refreshInterval: 60000, maxVisible: null },
     fredDashboard: { enabled: false, column: 3, order: 4, refreshInterval: 3600000, maxVisible: null },
     priceTicker: { enabled: false, column: 3, order: 5, refreshInterval: 60000, maxVisible: null },
     economicCalendar: { enabled: false, column: 3, order: 6, refreshInterval: 3600000, maxVisible: null }

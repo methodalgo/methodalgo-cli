@@ -8,7 +8,7 @@ const SALT = "methodalgoMcpSALT";
  * 带有 HMAC 签名的安全请求函数 (迁移自原 core.js)
  * 使用原生 fetch 以获得更好的跨平台兼容性 (Node 18+, Bun)
  */
-export async function signedRequest(endpoint, params = {}, extraOptions = {}) {
+export function createSignedRequest(endpoint, params = {}, extraOptions = {}) {
     const apiKey = process.env.METHODALGO_API_KEY || config.get("apiKey");
     const apiBase = config.get("apiBase");
 
@@ -32,15 +32,23 @@ export async function signedRequest(endpoint, params = {}, extraOptions = {}) {
         .update(sortedParams)
         .digest("hex");
 
-    const response = await fetch(urlObj.toString(), {
-        method: "GET",
+    return {
+        url: urlObj.toString(),
         headers: {
             "x-mcp-signature": signature,
             "x-mcp-timestamp": timestamp,
             "Authorization": `Bearer ${apiKey}`,
             "Accept": "application/json",
             ...extraOptions.headers
-        },
+        }
+    };
+}
+
+export async function signedRequest(endpoint, params = {}, extraOptions = {}) {
+    const request = createSignedRequest(endpoint, params, extraOptions);
+    const response = await fetch(request.url, {
+        method: "GET",
+        headers: request.headers,
         signal: extraOptions.signal,
     });
 
@@ -62,6 +70,21 @@ export async function signedRequest(endpoint, params = {}, extraOptions = {}) {
 
     const data = await response.json();
     return { data, headers: Object.fromEntries(response.headers.entries()) };
+}
+
+export async function signedStreamRequest(endpoint, params = {}, extraOptions = {}) {
+    const request = createSignedRequest(endpoint, params, {
+        ...extraOptions,
+        headers: {
+            "Accept": "text/event-stream",
+            ...extraOptions.headers
+        }
+    });
+    return fetch(request.url, {
+        method: "GET",
+        headers: request.headers,
+        signal: extraOptions.signal
+    });
 }
 
 /**

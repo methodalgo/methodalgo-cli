@@ -34,7 +34,7 @@ vi.mock('react', () => ({
     default: {
         useState: vi.fn((init) => [init, vi.fn()]),
         useEffect: vi.fn(),
-        useRef: vi.fn(() => ({ current: { startAutoRefresh: vi.fn(), stopAutoRefresh: vi.fn(), destroy: vi.fn(), fetchMultiple: vi.fn() } })),
+        useRef: vi.fn(() => ({ current: { startDashboardStream: vi.fn(() => false), startAutoRefresh: vi.fn(), stopAutoRefresh: vi.fn(), destroy: vi.fn(), fetchMultiple: vi.fn() } })),
         useCallback: vi.fn((fn) => fn),
         useMemo: vi.fn((fn) => fn()),
         createElement: vi.fn(),
@@ -52,6 +52,7 @@ vi.mock('../../src/class/DataFetcher.js', () => ({
     DataFetcher: vi.fn(function() {
         return {
             startAutoRefresh: vi.fn(),
+            startDashboardStream: vi.fn(() => false),
             stopAutoRefresh: vi.fn(),
             destroy: vi.fn(),
             fetchMultiple: vi.fn()
