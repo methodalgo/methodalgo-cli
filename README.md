@@ -47,13 +47,14 @@ methodalgo
 ```
 *Note: this method can auto update when new version released.*
 
-#### 🔑 API Key
-To use the CLI, you need an API key. You can create and manage your keys here:
+#### 🔑 Login / API Key
+To use the CLI, run browser login. The account service will reuse or create a dedicated `methodalgo-cli:` API key and save it locally after validation.
 > [**https://account.methodalgo.com/account/api-keys**](https://account.methodalgo.com/account/api-keys)
 
-Once you have your key, run:
+Run:
 ```bash
 methodalgo login
+methodalgo login --api-key # fallback: paste an API Key manually
 # Or set via environment variable: export METHODALGO_API_KEY=your_key
 ```
 
@@ -258,13 +259,14 @@ methodalgo
 ```
 *注：此方式在发布新版本时可自动更新。*
 
-#### 🔑 API Key
-使用 CLI 需要 API Key。您可以在此处创建和管理您的密钥：
+#### 🔑 登录 / API Key
+使用 CLI 时请先运行浏览器登录。账户服务会复用或创建一个专用的 `methodalgo-cli:` API Key，并在验证通过后保存到本地。
 > [**https://account.methodalgo.com/account/api-keys**](https://account.methodalgo.com/account/api-keys)
 
-获取密钥后，请运行：
+运行：
 ```bash
 methodalgo login
+methodalgo login --api-key # 回退方案：手动粘贴 API Key
 # Or set via environment variable: export METHODALGO_API_KEY=your_key
 ```
 
@@ -453,6 +455,7 @@ You can use environment variables to configure the CLI. Environment variables ta
 | Variable | Description |
 | --- | --- |
 | `METHODALGO_API_KEY` | Your Methodalgo API Key. |
+| `METHODALGO_ACCOUNT_BASE` | Custom account URL for OAuth login (Default: `https://account.methodalgo.com`). |
 | `METHODALGO_API_BASE` | Custom API base URL (Default: `https://api.methodalgo.com`). |
 
 
@@ -463,4 +466,5 @@ You can use environment variables to configure the CLI. Environment variables ta
 | 变量名 | 描述 |
 | --- | --- |
 | `METHODALGO_API_KEY` | 您的 Methodalgo API Key。 |
+| `METHODALGO_ACCOUNT_BASE` | 自定义 OAuth 登录账户地址（默认：`https://account.methodalgo.com`）。 |
 | `METHODALGO_API_BASE` | 自定义 API 基础 URL（默认：`https://api.methodalgo.com`）。 |

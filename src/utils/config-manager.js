@@ -78,6 +78,10 @@ const schema = {
         type: "string",
         default: "https://mm.methodalgo.com"
     },
+    accountBase: {
+        type: "string",
+        default: "https://account.methodalgo.com"
+    },
     lang: {
         type: "string",
         default: "en"

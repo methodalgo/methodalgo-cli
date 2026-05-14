@@ -3,10 +3,12 @@ import chalk from "chalk";
 import config from "./config-manager.js";
 import { t } from "./i18n.js";
 import { validateApiKey } from "./api.js";
+import { loginWithOAuth } from "./oauth-login.js";
 
-export async function startOnboarding(banner = "") {
+export async function startOnboarding(banner = "", options = {}) {
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+    const useOAuth = options.useOAuth !== false;
 
     console.clear();
     if (banner) console.log(banner);
@@ -20,10 +22,33 @@ export async function startOnboarding(banner = "") {
 
     // 2. 引导欢迎语
     console.log(chalk.blue(`\n💡 ${t("ONBOARD_WELCOME")}`));
-    console.log(chalk.yellow(`🔗 ${t("ONBOARD_GET_LINK")}\n`));
 
-    // 3. 循环请求 API Key 直到校验成功
+    // 3. 优先使用 OAuth 登录，失败后回退到手动 API Key
     let valid = false;
+    if (useOAuth) {
+        const authMethod = await question(chalk.bold(`\n${t("ONBOARD_AUTH_METHOD_PROMPT")}`));
+        if (authMethod !== "2") {
+            try {
+                console.log(chalk.blue(`\n⏳ ${t("ONBOARD_OAUTH_OPENING")}`));
+                const result = await loginWithOAuth();
+                if (result?.apiKey) {
+                    valid = true;
+                    config.set("apiKey", result.apiKey);
+                    console.log(chalk.green(`\n✨ ${t("ONBOARD_OAUTH_SUCCESS", { email: result.user?.email || "MethodAlgo" })}`));
+                } else {
+                    console.log(chalk.red(`\n❌ ${t("ONBOARD_FAILED")}`));
+                }
+            } catch (err) {
+                console.log(chalk.yellow(`\n⚠️  ${t("ONBOARD_OAUTH_FAILED", { message: err.message })}`));
+            }
+        }
+    }
+
+    // 4. 循环请求 API Key 直到校验成功
+    if (!valid) {
+        console.log(chalk.yellow(`🔗 ${t("ONBOARD_GET_LINK")}\n`));
+    }
+
     while (!valid) {
         const key = await question(chalk.bold(`🔑 ${t("ONBOARD_PROMPT")}`));
         if (!key) continue;
@@ -40,7 +65,7 @@ export async function startOnboarding(banner = "") {
         }
     }
 
-    // 4. 可选：FRED API Key
+    // 5. 可选：FRED API Key
     console.log(chalk.cyan("\n" + "─".repeat(30)));
     console.log(chalk.blue(`💡 (Optional) ${t("ONBOARD_FRED_DESC") || "Add FRED support for macro economic data."}`));
     const fredKey = await question(chalk.bold(`🔑 FRED API Key (Press Enter to skip): `));

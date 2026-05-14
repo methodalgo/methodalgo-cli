@@ -61,12 +61,14 @@ describe('config Command Structure', () => {
                 "api-key": "apiKey",
                 "lang": "lang",
                 "api-base": "apiBase",
+                "account-base": "accountBase",
                 "fred-api-key": "fredApiKey"
             };
             
             expect(API_KEY_MAP["api-key"]).toBe("apiKey");
             expect(API_KEY_MAP["lang"]).toBe("lang");
             expect(API_KEY_MAP["api-base"]).toBe("apiBase");
+            expect(API_KEY_MAP["account-base"]).toBe("accountBase");
             expect(API_KEY_MAP["fred-api-key"]).toBe("fredApiKey");
         });
     });

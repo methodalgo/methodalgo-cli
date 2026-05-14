@@ -9,6 +9,7 @@ const API_KEY_MAP = {
     "api-key": "apiKey",
     "lang": "lang",
     "api-base": "apiBase",
+    "account-base": "accountBase",
     "fred-api-key": "fredApiKey"
 };
 
@@ -21,7 +22,7 @@ configCmd.addHelpText("after", `\n${t("VAL_ALLOWED_KEYS")}`);
 configCmd
     .command("set")
     .description(t("CONFIG_SET_DESC"))
-    .argument("<key>", "Key (api-key, lang, api-base, fred-api-key)")
+    .argument("<key>", "Key (api-key, lang, api-base, account-base, fred-api-key)")
     .argument("<value>", "Value")
     .action(async (key, value) => {
         if (!API_KEY_MAP[key]) {
@@ -58,7 +59,7 @@ configCmd
 configCmd
     .command("get")
     .description(t("CONFIG_GET_DESC"))
-    .argument("<key>", "Key (api-key, lang, api-base, fred-api-key)")
+    .argument("<key>", "Key (api-key, lang, api-base, account-base, fred-api-key)")
     .action((key) => {
         if (!API_KEY_MAP[key]) {
             logger.error(t("ERR_INVALID_CONFIG_KEY", { key }));

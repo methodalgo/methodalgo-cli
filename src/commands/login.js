@@ -8,7 +8,8 @@ import { BANNER } from "../utils/constants.js";
 
 const loginCmd = new Command("login")
     .description(t("LOGIN_DESC"))
-    .action(async () => {
+    .option("--api-key", t("LOGIN_API_KEY_OPTION"))
+    .action(async (options) => {
         const hasEnvKey = !!process.env.METHODALGO_API_KEY;
         const hasConfigKey = !!config.get("apiKey");
 
@@ -37,7 +38,7 @@ const loginCmd = new Command("login")
             config.set("apiKey", "");
         }
 
-        await startOnboarding(BANNER);
+        await startOnboarding(BANNER, { useOAuth: !options.apiKey });
     });
 
 export default loginCmd;
