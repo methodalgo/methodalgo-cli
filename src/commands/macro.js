@@ -10,14 +10,60 @@ async function requestMacro(type, params = {}, opts = {}) {
         const res = await signedRequest("/cli/macro", { type, ...params });
         const { status, data, message } = res.data || {};
         if (!status) {
-            logger.error(`${t("ERR_NETWORK")}: ${message || t("ERR_MACRO_REQUEST_FAILED")}`);
+            if (!opts.silent) logger.error(`${t("ERR_NETWORK")}: ${message || t("ERR_MACRO_REQUEST_FAILED")}`);
             return null;
         }
         if (opts.json) logger.json(data);
         return data;
     } catch (error) {
         const message = error.response?.data?.message || error.message || t("ERR_MACRO_REQUEST_FAILED");
-        logger.error(`${t("ERR_NETWORK")}: ${message}`);
+        if (!opts.silent) logger.error(`${t("ERR_NETWORK")}: ${message}`);
+        return null;
+    }
+}
+
+async function requestMarketEnvironment(params = {}, opts = {}) {
+    const data = await requestMacro("market-environment", params, { ...opts, silent: true, json: false });
+    if (data) {
+        if (opts.json) logger.json(data);
+        return data;
+    }
+
+    const fallback = await requestMarketTodayTotals();
+    if (fallback) {
+        if (opts.json) logger.json(fallback);
+        return fallback;
+    }
+
+    logger.error(`${t("ERR_NETWORK")}: ${t("ERR_MACRO_REQUEST_FAILED")}`);
+    return null;
+}
+
+async function requestMarketTodayTotals() {
+    try {
+        const res = await signedRequest("/cli/signals", {
+            channelName: "market-today",
+            limit: 1
+        });
+        const { status, data } = res.data || {};
+        if (!status) return null;
+        const marketTotals = Array.isArray(data)
+            ? data.find(item => item?.marketTotals)?.marketTotals
+            : data?.marketTotals;
+        if (!marketTotals) return null;
+        return {
+            convert: marketTotals.convert || "USD",
+            btcDominance: marketTotals.btcDominance,
+            ethDominance: marketTotals.ethDominance,
+            totalMarketCap: marketTotals.totalMarketCap,
+            totalVolume24h: marketTotals.totalVolume24h,
+            fearAndGreed: marketTotals.fearAndGreed,
+            altcoinSeason: marketTotals.altcoinSeason,
+            source: marketTotals.source || "market-today",
+            cachedAt: marketTotals.cachedAt,
+            expiresAt: marketTotals.expiresAt
+        };
+    } catch (error) {
         return null;
     }
 }
@@ -58,7 +104,7 @@ macroCmd
     .option("--convert <symbol>", t("OPT_CONVERT_DESC"), "USD")
     .option("--json", t("OPT_JSON_DESC"))
     .action(async (opts) => {
-        const data = await requestMacro("market-environment", { convert: opts.convert }, opts);
+        const data = await requestMarketEnvironment({ convert: opts.convert }, opts);
         if (!data || opts.json) return;
         printKeyValues(t("MACRO_ENV_TITLE"), [
             [t("LABEL_BTC_DOMINANCE"), formatPctValue(data.btcDominance)],

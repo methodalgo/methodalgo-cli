@@ -87,7 +87,50 @@ describe("macro Command Structure", () => {
 
         await expect(macroCmd.parseAsync(["node", "macro", "environment", "--json"], { from: "node" })).resolves.toBeDefined();
 
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("fetch failed"));
+        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("宏观请求失败"));
     });
 
+    it("falls back to market-today totals for environment when market-environment is unavailable", async () => {
+        const { signedRequest } = await import("../../src/utils/api.js");
+        const logger = (await import("../../src/utils/logger.js")).default;
+        signedRequest
+            .mockRejectedValueOnce(new Error("Request failed with status 404"))
+            .mockResolvedValueOnce({
+                data: {
+                    status: true,
+                    data: [
+                        {
+                            marketTotals: {
+                                convert: "USD",
+                                source: "coinmarketcap",
+                                btcDominance: 59.9,
+                                ethDominance: 9.8,
+                                totalMarketCap: 2580000000000,
+                                totalVolume24h: 65000000000,
+                                fearAndGreed: { value: 40, classification: "Neutral" },
+                                altcoinSeason: { value: 36 },
+                                cachedAt: 1779714145556
+                            }
+                        }
+                    ]
+                }
+            });
+        const { default: macroCmd } = await import("../../src/commands/macro.js");
+
+        await macroCmd.parseAsync(["node", "macro", "environment", "--json"], { from: "node" });
+
+        expect(signedRequest).toHaveBeenNthCalledWith(1, "/cli/macro", {
+            type: "market-environment",
+            convert: "USD"
+        });
+        expect(signedRequest).toHaveBeenNthCalledWith(2, "/cli/signals", {
+            channelName: "market-today",
+            limit: 1
+        });
+        expect(logger.error).not.toHaveBeenCalled();
+        expect(logger.json).toHaveBeenCalledWith(expect.objectContaining({
+            btcDominance: 59.9,
+            altcoinSeason: expect.objectContaining({ value: 36 })
+        }));
+    });
 });

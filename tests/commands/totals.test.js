@@ -110,21 +110,52 @@ describe("totals Command", () => {
         });
     });
 
-    it("handles aggregate request failures without showing help or throwing", async () => {
+    it("falls back to market-today totals when market-environment is unavailable", async () => {
         const { signedRequest } = await import("../../src/utils/api.js");
         const logger = (await import("../../src/utils/logger.js")).default;
-        signedRequest.mockRejectedValue(new Error("Request failed with status 404"));
+        signedRequest
+            .mockRejectedValueOnce(new Error("Request failed with status 404"))
+            .mockResolvedValueOnce({
+                data: {
+                    status: true,
+                    data: [
+                        {
+                            marketTotals: {
+                                convert: "USD",
+                                source: "coinmarketcap",
+                                btcDominance: 59.9,
+                                ethDominance: 9.8,
+                                totalMarketCap: 2580000000000,
+                                fearAndGreed: { value: 40, classification: "Neutral" },
+                                altcoinSeason: { value: 36 },
+                                cachedAt: 1779714145556
+                            }
+                        }
+                    ]
+                }
+            });
         const { default: totalsCmd } = await import("../../src/commands/totals.js");
         totalsCmd.helpInformation = vi.fn(() => "help");
 
         await expect(totalsCmd.parseAsync(["node", "totals", "--json"], { from: "node" })).resolves.toBe(totalsCmd);
 
-        expect(signedRequest).toHaveBeenCalledWith("/cli/macro", {
+        expect(signedRequest).toHaveBeenNthCalledWith(1, "/cli/macro", {
             type: "market-environment",
             convert: "USD"
         });
+        expect(signedRequest).toHaveBeenNthCalledWith(2, "/cli/signals", {
+            channelName: "market-today",
+            limit: 1
+        });
         expect(totalsCmd.helpInformation).not.toHaveBeenCalled();
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("Request failed with status 404"));
+        expect(logger.error).not.toHaveBeenCalled();
+        expect(logger.json).toHaveBeenCalledWith(expect.objectContaining({
+            command: "totals",
+            metrics: expect.objectContaining({
+                btcDominance: expect.objectContaining({ value: 59.9 }),
+                altcoinSeason: expect.objectContaining({ value: 36 })
+            })
+        }));
     });
 
     it("maps totals metric history to market-history", async () => {
@@ -153,6 +184,48 @@ describe("totals Command", () => {
             convert: "USD"
         });
         expect(signedRequest).toHaveBeenNthCalledWith(2, "/cli/macro", {
+            type: "market-history",
+            metric: "btcDominance",
+            timeframe: "90d",
+            convert: "USD"
+        });
+        expect(logger.json).toHaveBeenCalledWith(expect.objectContaining({
+            command: "totals btc-dominance",
+            metric: "btcDominance",
+            history: expect.objectContaining({ timeframe: "90d" })
+        }));
+    });
+
+    it("parses metric options when invoked through the parent command", async () => {
+        const { signedRequest } = await import("../../src/utils/api.js");
+        const logger = (await import("../../src/utils/logger.js")).default;
+        signedRequest
+            .mockRejectedValueOnce(new Error("Request failed with status 404"))
+            .mockResolvedValueOnce({
+                data: {
+                    status: true,
+                    data: [
+                        {
+                            marketTotals: {
+                                convert: "USD",
+                                source: "coinmarketcap",
+                                btcDominance: 59.9
+                            }
+                        }
+                    ]
+                }
+            })
+            .mockResolvedValueOnce({
+                data: {
+                    status: true,
+                    data: { metric: "btcDominance", timeframe: "90d", points: [{ time: "2026-05-25", value: 59.9 }] }
+                }
+            });
+        const { default: totalsCmd } = await import("../../src/commands/totals.js");
+
+        await totalsCmd.parseAsync(["node", "totals", "btc-dominance", "--history", "90d", "--json"], { from: "node" });
+
+        expect(signedRequest).toHaveBeenNthCalledWith(3, "/cli/macro", {
             type: "market-history",
             metric: "btcDominance",
             timeframe: "90d",

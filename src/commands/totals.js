@@ -13,18 +13,18 @@ const TOTALS_METRICS = [
     { command: "altseason-index", metric: "altcoinSeason", key: "altcoinSeason", labelKey: "LABEL_ALTCOIN_SEASON", format: value => value ? String(value.value ?? t("LABEL_NA")) : t("LABEL_NA") }
 ];
 
-async function requestMacro(type, params = {}) {
+async function requestMacro(type, params = {}, options = {}) {
     try {
         const res = await signedRequest("/cli/macro", { type, ...params });
         const { status, data, message } = res.data || {};
         if (!status) {
-            logger.error(`${t("ERR_NETWORK")}: ${message || t("ERR_TOTALS_REQUEST_FAILED")}`);
+            if (!options.silent) logger.error(`${t("ERR_NETWORK")}: ${message || t("ERR_TOTALS_REQUEST_FAILED")}`);
             return null;
         }
         return data;
     } catch (error) {
         const message = error.response?.data?.message || error.message || t("ERR_TOTALS_REQUEST_FAILED");
-        logger.error(`${t("ERR_NETWORK")}: ${message}`);
+        if (!options.silent) logger.error(`${t("ERR_NETWORK")}: ${message}`);
         return null;
     }
 }
@@ -50,7 +50,12 @@ TOTALS_METRICS.forEach(metric => {
         .option("--convert <symbol>", t("OPT_CONVERT_DESC"), "USD")
         .option("--history <range>", t("OPT_TOTALS_HISTORY_DESC"))
         .option("--json", t("OPT_JSON_DESC"))
-        .action(async (opts) => {
+        .action(async (...args) => {
+            const argOpts = args.find(arg => arg && arg.constructor === Object) || {};
+            const command = args.find(arg => typeof arg?.opts === "function");
+            const cmdOpts = command?.opts() || {};
+            const parentOpts = command?.parent?.opts?.() || {};
+            const opts = { ...argOpts, ...cmdOpts, ...parentOpts };
             const data = await fetchTotalsMetric(metric, opts);
             if (!data) return;
             if (opts.json) return logger.json(data);
@@ -68,7 +73,7 @@ function formatTotalsHelp() {
 }
 
 async function fetchTotalsSummary(opts) {
-    const environment = await requestMacro("market-environment", { convert: opts.convert });
+    const environment = await requestMarketEnvironment(opts);
     if (!environment) return null;
     const metrics = Object.fromEntries(TOTALS_METRICS.map(metric => [
         metric.metric,
@@ -89,7 +94,7 @@ async function fetchTotalsSummary(opts) {
 }
 
 async function fetchTotalsMetric(metric, opts) {
-    const environment = await requestMacro("market-environment", { convert: opts.convert });
+    const environment = await requestMarketEnvironment(opts);
     if (!environment) return null;
     const payload = {
         command: `totals ${metric.command}`,
@@ -107,6 +112,48 @@ async function requestMarketHistory(metric, opts) {
         timeframe: opts.history,
         convert: opts.convert
     });
+}
+
+async function requestMarketEnvironment(opts) {
+    const environment = await requestMacro("market-environment", { convert: opts.convert }, { silent: true });
+    if (environment) return environment;
+
+    const fallback = await requestMarketTodayTotals();
+    if (fallback) return fallback;
+
+    logger.error(`${t("ERR_NETWORK")}: ${t("ERR_TOTALS_REQUEST_FAILED")}`);
+    return null;
+}
+
+async function requestMarketTodayTotals() {
+    try {
+        const res = await signedRequest("/cli/signals", {
+            channelName: "market-today",
+            limit: 1
+        });
+        const { status, data, message } = res.data || {};
+        if (!status) {
+            logger.error(`${t("ERR_NETWORK")}: ${message || t("ERR_TOTALS_REQUEST_FAILED")}`);
+            return null;
+        }
+        const marketTotals = Array.isArray(data)
+            ? data.find(item => item?.marketTotals)?.marketTotals
+            : data?.marketTotals;
+        if (!marketTotals) return null;
+        return {
+            convert: marketTotals.convert || "USD",
+            source: marketTotals.source || "market-today",
+            updatedAt: marketTotals.updatedAt || marketTotals.cachedAt || null,
+            cachedAt: marketTotals.cachedAt,
+            btcDominance: marketTotals.btcDominance,
+            ethDominance: marketTotals.ethDominance,
+            totalMarketCap: marketTotals.totalMarketCap,
+            fearAndGreed: marketTotals.fearAndGreed,
+            altcoinSeason: marketTotals.altcoinSeason
+        };
+    } catch (error) {
+        return null;
+    }
 }
 
 function buildMetricPayload(metric, environment) {
