@@ -3,6 +3,7 @@ import chalk from "chalk";
 import logger from "../utils/logger.js";
 import { t } from "../utils/i18n.js";
 import { fetchBinanceMovers, formatQuoteVolume } from "../utils/price-utils.js";
+import { helpExample, helpSection } from "../utils/help-format.js";
 import {
     binancePublicGet,
     isBinancePublicEndpoint,
@@ -92,7 +93,15 @@ function handleError(e) {
 
 const binanceCmd = new Command("binance")
     .description(t("BINANCE_DESC"))
-    .addHelpText("after", `\n${t("BINANCE_HELP_EXAMPLES")}`);
+    .addHelpText("after", `\n${formatBinanceHelp()}`);
+
+function formatBinanceHelp() {
+    const help = t("BINANCE_HELP_EXAMPLES");
+    const [symbolSection, exampleSection = ""] = help.split(/\nExamples:\n|\n示例：\n/);
+    const exampleTitle = help.includes("示例") ? "示例：" : "Examples:";
+    const examples = exampleSection.split("\n").filter(Boolean).map(line => helpExample(line.replace(/^\s*\$\s*/, ""))).join("\n");
+    return `${helpSection(symbolSection.split("\n")[0], chalk.gray(symbolSection.split("\n").slice(1).join("\n")))}\n${helpSection(exampleTitle, examples)}`;
+}
 
 binanceCmd
     .command("price <symbol>")

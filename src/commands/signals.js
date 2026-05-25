@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { signedRequest } from "../utils/api.js";
 import logger from "../utils/logger.js";
 import { t, getLang } from "../utils/i18n.js";
+import { helpExample, helpSection } from "../utils/help-format.js";
 
 const handleTokenUnlock = (data, options, lang) => {
     let signals = data.signals || [];
@@ -50,11 +51,11 @@ const handleTokenUnlock = (data, options, lang) => {
 const signalsCmd = new Command("signals")
     .description(t("SIGNALS_DESC"))
     .argument("[channel]", t("ARG_CHANNEL_DESC") || "Channel name")
-    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("SIGNALS_EXAMPLE")}\n\n${t("SIGNALS_CHANNELS")}`)
+    .addHelpText("after", `\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("SIGNALS_EXAMPLE")))}\n\n${t("SIGNALS_CHANNELS")}`)
     .option("-l, --limit <number>", t("OPT_LIMIT_DESC"), "10")
     .option("-a, --after <id>", t("OPT_AFTER_DESC"))
     .option("--json", "Output raw JSON data")
-    .addHelpText("after", `\n${t("SIGNALS_LIMIT_NOTE")}`)
+    .addHelpText("after", `\n${chalk.gray(t("SIGNALS_LIMIT_NOTE"))}`)
     .action(async (channel, options) => {
         if (!channel) return signalsCmd.help();
         try {

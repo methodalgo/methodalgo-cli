@@ -86,10 +86,6 @@ const schema = {
         type: "string",
         default: "en"
     },
-    fredApiKey: {
-        type: "string",
-        default: ""
-    },
     dashboard: {
         type: "object",
         default: DEFAULT_DASHBOARD

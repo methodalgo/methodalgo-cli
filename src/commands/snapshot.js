@@ -4,6 +4,7 @@ import axios from "axios";
 import { signedRequest } from "../utils/api.js";
 import logger from "../utils/logger.js";
 import { t } from "../utils/i18n.js";
+import { helpExample, helpSection } from "../utils/help-format.js";
 
 const snapshotCmd = new Command("snapshot")
     .description(t("SNAPSHOT_DESC"))
@@ -12,7 +13,7 @@ const snapshotCmd = new Command("snapshot")
     .option("--json", "Output raw JSON data")
     .option("-u, --url", t("OPT_URL_DESC"))
     .option("-b, --buffer", t("OPT_BUFFER_DESC"))
-    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("SNAPSHOT_EXAMPLE")}\n`)
+    .addHelpText("after", `\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("SNAPSHOT_EXAMPLE")))}\n`)
     .action(async (symbol, tf, options) => {
         try {
             let ticker = symbol.toUpperCase();

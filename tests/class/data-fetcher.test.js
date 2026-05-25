@@ -11,11 +11,6 @@ vi.mock("../../src/utils/config-manager.js", () => ({
     }
 }));
 
-vi.mock("../../src/utils/fred-api.js", () => ({
-    getFredApiKey: vi.fn(() => ""),
-    getSeriesObservations: vi.fn()
-}));
-
 vi.mock("../../src/utils/price-utils.js", () => ({
     fetchBinanceMovers: vi.fn(),
     fetchBinancePrice: vi.fn()
@@ -151,5 +146,54 @@ describe("DataFetcher", () => {
         ]);
         expect(result.data.every(item => item.hideTime)).toBe(true);
         expect(result.data[1].direction).toBe("bear");
+    });
+
+    it("preserves macro dashboard units and changes", async () => {
+        const { signedRequest } = await import("../../src/utils/api.js");
+        signedRequest.mockResolvedValue({
+            data: {
+                status: true,
+                data: {
+                    sections: {
+                        rates: {
+                            DGS10: {
+                                title: "10-Year Treasury",
+                                value: 4.52,
+                                unit: "%",
+                                change: -0.04,
+                                date: "2026-05-22"
+                            }
+                        }
+                    },
+                    liquidity: {
+                        NET_LIQ: {
+                            value_billions: 5700,
+                            change_billions: 25,
+                            unit: "billions_usd",
+                            date: "2026-05-22"
+                        }
+                    }
+                }
+            }
+        });
+
+        const { DataFetcher } = await import("../../src/class/DataFetcher.js");
+        const fetcher = new DataFetcher({ lang: "en" });
+        const result = await fetcher._fetchFred(null, new AbortController().signal);
+
+        expect(result.rates.DGS10).toEqual(expect.objectContaining({
+            label: "10-Year Treasury",
+            value: 4.52,
+            unit: "%",
+            change: -0.04,
+            date: "2026-05-22"
+        }));
+        expect(result.liquidity.NET_LIQ).toEqual(expect.objectContaining({
+            label: "Net Liquidity",
+            value: 5700,
+            formatted: "$5.70T",
+            unit: "billions_usd",
+            change: 25
+        }));
     });
 });

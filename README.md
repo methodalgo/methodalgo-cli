@@ -169,32 +169,60 @@ Get multi-language crypto market news filtered by AI.
  
  **Example**: `methodalgo calendar --countries US,CN`
  
- #### 🏦 Federal Reserve Data (`fred`)
- Access 800,000+ macro economic time series from FRED (Federal Reserve Economic Data).
+ #### 🏦 Macro Data (`macro`)
+ Access server-side macro economic time series, FRED-derived calculations, market environment data, and economic calendar data.
  
- *   **Usage**: `methodalgo fred [command] [options]`
+ *   **Usage**: `methodalgo macro [command] [options]`
  *   **Subcommands**:
+     *   `environment`: BTC/ETH dominance, total market cap, fear & greed, and altseason index.
+     *   `history <metric>`: History for `btcDominance`, `ethDominance`, `totalMarketCap`, `fearAndGreed`, or `altcoinSeason`.
+     *   `snapshot`: Macro snapshot across rates, liquidity, risk, growth, and calendar events.
+     *   `series <source> <seriesId>`: Fetch a FRED or DBnomics macro time series.
+     *   `calendar`: Server-side economic calendar events.
+     *   `search <query>`: Search for FRED series by keywords.
+     *   `get <id>`: Get observations for a specific series.
+     *   `info <id>`: Get metadata for a specific series.
+     *   `latest <id>`: Get the latest value for a specific series.
+     *   `compare <ids>`: Compare multiple series (e.g., `methodalgo macro compare DGS10,DGS2`).
+     *   `changes <id>`: Show recent changes and trends for a series.
+     *   `spread <id1> <id2>`: Compute the difference between two series (e.g., 10Y-2Y spread).
+     *   `liquidity`: Crypto-relevant net liquidity analysis (Fed Balance Sheet - RRP - TGA).
+     *   `zscore <id>`: Statistical Z-score and percentile analysis vs historical data.
      *   `dashboard`: Full macro overview (Rates, Inflation, Liquidity, Employment, Conditions).
      *   `recession`: Recession indicator scorecard (6 classic signals based on yield curve, claims, etc.).
-     *   `liquidity`: Crypto-relevant net liquidity analysis (Fed Balance Sheet - RRP - TGA).
-     *   `latest <id>`: Get the latest value for a specific series.
-     *   `search <query>`: Search for FRED series by keywords.
-     *   `compare <ids>`: Compare multiple series (e.g., `methodalgo fred compare GS10,GS2`).
-     *   `changes <id>`: Show recent changes and trends for a series.
-     *   `spread <id1,id2>`: Compute the difference between two series (e.g., 10Y-2Y spread).
-     *   `zscore <id>`: Statistical Z-score and percentile analysis vs historical data.
- *   **Options**:
-     *   `-b, --lookback <window>`: Lookback window (e.g., `5y`, `24m`, `365d`).
-     *   `-n, --tail <number>`: Show last N observations.
+ *   **Common command options**:
+     *   `--tail <number>`: Available on `get`, `compare`, `spread`, and `liquidity`.
+     *   `--lookback <window>`: Available on `zscore` (e.g., `5y`, `24m`, `365d`).
+     *   `--timeframe <range>`: Available on `history` and `series`.
+     *   `--json`: Output raw server data.
  *   **Common Series IDs**:
      *   `FEDFUNDS`: Fed Funds Rate | `CPIAUCSL`: Consumer Price Index (CPI)
      *   `WALCL`: Fed Total Assets | `RRPONTSYD`: Reverse Repo (RRP)
      *   `T10Y2Y`: 10-Year vs 2-Year Treasury Spread
  
- **Example**: `methodalgo fred liquidity --m2`
+ **Example**: `methodalgo macro liquidity --m2`
 
-**💡 Pro Tip**: You can get your own FRED API Key from [St. Louis Fed](https://fred.stlouisfed.org/docs/api/api_key.html) and set it via:
- `methodalgo config set fred-api-key <your-key>`
+**💡 Pro Tip**: Macro data is served through MethodAlgo. The local CLI no longer requires a FRED API key.
+
+#### 📊 Crypto Market Totals (`totals`)
+Query structured crypto market total statistics from CMC through MethodAlgo.
+
+*   **Usage**: `methodalgo totals [metric] [options]`
+*   **Metrics**:
+    *   `btc-dominance`: BTC dominance.
+    *   `eth-dominance`: ETH dominance.
+    *   `total-market-cap`: Total crypto market cap.
+    *   `fear-greed`: Fear & Greed Index.
+    *   `altseason-index`: Altcoin Season Index.
+*   **Options**:
+    *   `--convert <symbol>`: Quote currency, default `USD`.
+    *   `--history <range>`: Also fetch history (`30d`, `90d`, `1y`).
+    *   `--json`: Output raw JSON data.
+
+**Examples**:
+* `methodalgo totals --help`
+* `methodalgo totals btc-dominance --history 90d --json`
+* `methodalgo totals --json`
 
 #### 🟡 Binance Market Data (`binance`)
 Access Binance spot and USD-M futures public market data without an API key.
@@ -381,32 +409,60 @@ methodalgo
  
  **示例**: `methodalgo calendar --countries US,CN`
  
- #### 🏦 宏观经济数据 (`fred`)
- 接入美联储 FRED 数据库，获取 80 多万条宏观经济时间序列数据。
+ #### 🏦 宏观经济数据 (`macro`)
+ 通过 MethodAlgo 服务端获取宏观经济时间序列、FRED 派生计算、市场环境数据和经济日历。
  
- *   **用法**: `methodalgo fred [command] [options]`
+ *   **用法**: `methodalgo macro [command] [options]`
  *   **核心子命令**:
+     *   `environment`: 获取 BTC/ETH Dominance、Total Market Cap、Fear & Greed 与 Altseason Index。
+     *   `history <metric>`: 获取 `btcDominance`、`ethDominance`、`totalMarketCap`、`fearAndGreed` 或 `altcoinSeason` 历史。
+     *   `snapshot`: 获取宏观快照，涵盖利率、流动性、风险、增长与日历事件。
+     *   `series <source> <seriesId>`: 获取 FRED 或 DBnomics 宏观时间序列。
+     *   `calendar`: 获取服务端经济日历事件。
+     *   `search <query>`: 通过关键词搜索经济指标。
+     *   `get <id>`: 获取特定指标的观测数据。
+     *   `info <id>`: 获取特定指标的元数据。
+     *   `latest <id>`: 获取特定指标的最新数值。
+     *   `compare <ids>`: 对比多个指标 (例如: `methodalgo macro compare DGS10,DGS2`)。
+     *   `changes <id>`: 查看指标的近期变化和趋势。
+     *   `spread <id1> <id2>`: 计算两个指标之间的利差。
+     *   `liquidity`: 加密货币相关净流动性分析 (美联储资产负债表 - 逆回购 - TGA)。
+     *   `zscore <id>`: 统计学 Z-Score 分析及当前值在历史中的百分位。
      *   `dashboard`: 宏观经济概览看板 (涵盖利率、通胀、流动性、就业、金融环境)。
      *   `recession`: 衰退指标评分卡 (基于收益率曲线、失业金申请等 6 个经典信号)。
-     *   `liquidity`: 加密货币相关净流动性分析 (美联储资产负债表 - 逆回购 - TGA)。
-     *   `latest <id>`: 获取特定指标的最新数值。
-     *   `search <query>`: 通过关键词搜索经济指标。
-     *   `compare <ids>`: 对比多个指标 (例如: `methodalgo fred compare GS10,GS2`)。
-     *   `changes <id>`: 查看指标的近期变化和趋势。
-     *   `spread <id1,id2>`: 计算两个指标之间的利差 (如 10Y-2Y 利差)。
-     *   `zscore <id>`: 统计学 Z-Score 分析及当前值在历史中的百分位。
- *   **常用选项**:
-     *   `-b, --lookback <window>`: 回溯窗口 (如: `5y`, `24m`, `365d`)。
-     *   `-n, --tail <number>`: 显示最后 N 条记录。
+ *   **常用命令选项**:
+     *   `--tail <number>`: 可用于 `get`、`compare`、`spread` 和 `liquidity`。
+     *   `--lookback <window>`: 可用于 `zscore` (如: `5y`, `24m`, `365d`)。
+     *   `--timeframe <range>`: 可用于 `history` 和 `series`。
+     *   `--json`: 输出服务端原始数据。
  *   **常用指标 ID**:
      *   `FEDFUNDS`: 联邦基金利率 | `CPIAUCSL`: 消费者价格指数 (CPI)
      *   `WALCL`: 美联储总资产 | `RRPONTSYD`: 隔夜逆回购 (RRP)
      *   `T10Y2Y`: 10年期与2年期美债利差
  
- **示例**: `methodalgo fred dashboard`
+ **示例**: `methodalgo macro dashboard`
  
-**💡 专业提示**: 您可以从 [圣路易斯联储官网](https://fred.stlouisfed.org/docs/api/api_key.html) 获取您自己的 FRED API Key，并通过以下指令设置：
- `methodalgo config set fred-api-key <your-key>`
+**💡 专业提示**: 宏观数据由 MethodAlgo 服务端提供，本地 CLI 不再需要配置 FRED API Key。
+
+#### 📊 加密市场总统计 (`totals`)
+通过 MethodAlgo 查询来自 CMC 的结构化加密市场总统计数据。
+
+*   **用法**: `methodalgo totals [metric] [options]`
+*   **可查询指标**:
+    *   `btc-dominance`: BTC 占比。
+    *   `eth-dominance`: ETH 占比。
+    *   `total-market-cap`: 加密市场总市值。
+    *   `fear-greed`: 恐惧贪婪指数。
+    *   `altseason-index`: 山寨季指数。
+*   **选项**:
+    *   `--convert <symbol>`: 计价货币，默认 `USD`。
+    *   `--history <range>`: 同时获取历史 (`30d`, `90d`, `1y`)。
+    *   `--json`: 输出原始 JSON 数据。
+
+**示例**:
+* `methodalgo totals --help`
+* `methodalgo totals btc-dominance --history 90d --json`
+* `methodalgo totals --json`
 
 #### 🟡 币安市场数据 (`binance`)
 无需 API Key，直接查询币安现货与 U 本位合约公开市场数据。

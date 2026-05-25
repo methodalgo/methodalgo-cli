@@ -1,7 +1,6 @@
 import { signedRequest, signedStreamRequest } from "../utils/api.js";
 import { getLang, t } from "../utils/i18n.js";
 import config from "../utils/config-manager.js";
-import * as fred from "../utils/fred-api.js";
 import { fetchBinanceMovers, fetchBinancePrice } from "../utils/price-utils.js";
 import { PANEL_FETCHERS } from "./Dashboard/panel-registry.js";
 
@@ -184,123 +183,46 @@ export class DataFetcher {
     }
     
     async _fetchFred(fetcher, signal) {
-        const apiKey = fred.getFredApiKey();
-        if (!apiKey) {
-            return {
-                error: t("ERR_FRED_KEY_NOT_CONFIGURED")
+        try {
+            const result = await signedRequest("/cli/macro", { type: "fred-dashboard" }, { signal });
+            if (!result?.data?.status) return { error: result?.data?.message || t("ERR_MACRO_API_ERROR") };
+            const data = result.data.data || {};
+            const mapped = { rates: {}, market: {}, liquidity: {}, other: {} };
+            const sections = data.sections || {};
+            for (const [id, item] of Object.entries(sections.rates || {})) mapped.rates[id] = this._dashboardItem(item);
+            for (const [id, item] of Object.entries(sections.financial_conditions || {})) mapped.market[id] = this._dashboardItem(item);
+            for (const [id, item] of Object.entries(sections.commodities || {})) mapped.market[id] = this._dashboardItem(item);
+            for (const [id, item] of Object.entries(sections.employment || {})) mapped.other[id] = this._dashboardItem(item);
+            for (const [id, item] of Object.entries(sections.inflation || {})) mapped.other[id] = this._dashboardItem(item);
+        for (const [id, item] of Object.entries(data.liquidity || {})) {
+            const value = item.value_billions;
+            const formatted = item.formatted || this._formatLiquidity(value);
+            mapped.liquidity[id] = {
+                label: item.title || item.label || (id === "NET_LIQ" ? "Net Liquidity" : id),
+                value,
+                formatted,
+                unit: item.unit || "billions_usd",
+                change: Number.isFinite(Number(item.change_billions)) ? Number(item.change_billions) : Number(item.change) || 0,
+                date: item.date
             };
         }
-        
-        const rateSeries = [
-            { id: "FEDFUNDS", label: "Fed Funds", unit: "%" },
-            { id: "DGS1MO", label: "1M Treasury", unit: "%" },
-            { id: "DGS3MO", label: "3M Treasury", unit: "%" },
-            { id: "DGS6MO", label: "6M Treasury", unit: "%" },
-            { id: "DGS1", label: "1Y Treasury", unit: "%" },
-            { id: "DGS2", label: "2Y Treasury", unit: "%" },
-            { id: "DGS5", label: "5Y Treasury", unit: "%" },
-            { id: "DGS10", label: "10Y Treasury", unit: "%" },
-            { id: "DGS20", label: "20Y Treasury", unit: "%" },
-            { id: "DGS30", label: "30Y Treasury", unit: "%" },
-            { id: "T10Y2Y", label: "10Y-2Y Spread", unit: "%" },
-            { id: "T10Y3M", label: "10Y-3M Spread", unit: "%" },
-        ];
-        
-        const marketSeries = [
-            { id: "VIXCLS", label: "VIX", unit: "" },
-            { id: "DCOILWTICO", label: "WTI Crude", unit: "$" },
-            { id: "DCOILBRENTEU", label: "Brent Crude", unit: "$" },
-            { id: "GOLDAMGBD228NLBM", label: "Gold Price", unit: "$" },
-        ];
-        
-        const liqSeries = [
-            { id: "WALCL", label: "Fed Balance Sheet", unitMultiplier: 1 },
-            { id: "RRPONTSYD", label: "Reverse Repo", unitMultiplier: 1 },
-            { id: "WTREGEN", label: "TGA", unitMultiplier: 1 },
-            { id: "M2SL", label: "M2 Money Supply", unitMultiplier: 1 },
-        ];
-        
-        const otherSeries = [
-            { id: "UNRATE", label: "Unemployment", unit: "%" },
-            { id: "T5YIE", label: "5Y Breakeven", unit: "%" },
-            { id: "T10YIE", label: "10Y Breakeven", unit: "%" },
-            { id: "DAAA", label: "AAA Yield", unit: "%" },
-            { id: "DBAA", label: "BAA Yield", unit: "%" },
-        ];
-        
-        try {
-            const results = { rates: {}, market: {}, liquidity: {}, other: {} };
-            
-            const fetchSeries = async (s, category) => {
-                try {
-                    const obsRes = await fred.getSeriesObservations({ 
-                        series_id: s.id, 
-                        sort_order: "desc", 
-                        limit: 10 
-                    });
-                    
-                    const obs = obsRes.observations?.filter(o => o.value !== ".") || [];
-                    
-                    if (obs.length > 0) {
-                        const latest = obs[0];
-                        const prev = obs.length > 1 ? obs[1] : null;
-                        const value = Number(latest.value);
-                        const change = prev ? value - Number(prev.value) : 0;
-                        
-                        const result = {
-                            label: s.label,
-                            value: value,
-                            unit: s.unit || "",
-                            change: change,
-                            date: latest.date
-                        };
-                        
-                        if (category === "liquidity") {
-                            const valueB = value * (s.unitMultiplier || 1);
-                            result.value = valueB;
-                            result.formatted = this._formatLiquidity(valueB);
-                        }
-                        
-                        results[category][s.id] = result;
-                    }
-                } catch (e) {
-                    console.debug(`[DataFetcher] Error fetching FRED series ${s.id}:`, e.message);
-                }
-            };
-            
-            const allPromises = [
-                ...rateSeries.map(s => fetchSeries(s, "rates")),
-                ...marketSeries.map(s => fetchSeries(s, "market")),
-                ...liqSeries.map(s => fetchSeries(s, "liquidity")),
-                ...otherSeries.map(s => fetchSeries(s, "other")),
-            ];
-            
-            await Promise.all(allPromises);
-            
-            if (results.liquidity.WALCL) {
-                const walcl = results.liquidity.WALCL.value || 0;
-                const rrp = results.liquidity.RRPONTSYD?.value || 0;
-                const tga = results.liquidity.WTREGEN?.value || 0;
-                const netLiq = walcl - rrp - tga;
-                
-                results.liquidity.NET_LIQ = {
-                    label: "Net Liquidity",
-                    value: netLiq,
-                    formatted: this._formatLiquidity(netLiq)
-                };
-            }
-            
-            if (results.market.GOLDAMGBD228NLBM) {
-                results.market.GOLDAMGBD228NLBM.formatted = `$${results.market.GOLDAMGBD228NLBM.value.toFixed(2)}`;
-            }
-            
-            return results;
-            
+            return mapped;
         } catch (e) {
             return {
                 error: t("ERR_FRED_API_ERROR", { message: e.message })
             };
         }
+    }
+
+    _dashboardItem(item = {}) {
+        return {
+            label: item.title || item.label || "",
+            value: item.value,
+            unit: item.unit || item.units || "",
+            change: Number.isFinite(Number(item.change)) ? Number(item.change) : 0,
+            date: item.date,
+            formatted: item.formatted
+        };
     }
     
     _formatLiquidity(value) {

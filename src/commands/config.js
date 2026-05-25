@@ -4,25 +4,25 @@ import config from "../utils/config-manager.js";
 import logger from "../utils/logger.js";
 import { t } from "../utils/i18n.js";
 import { validateApiKey } from "../utils/api.js";
+import { helpExample, helpSection } from "../utils/help-format.js";
 
 const API_KEY_MAP = {
     "api-key": "apiKey",
     "lang": "lang",
     "api-base": "apiBase",
-    "account-base": "accountBase",
-    "fred-api-key": "fredApiKey"
+    "account-base": "accountBase"
 };
 
 const configCmd = new Command("config")
     .description(t("CONFIG_DESC"))
-    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("CONFIG_EXAMPLE")}\n`);
+    .addHelpText("after", `\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("CONFIG_EXAMPLE")))}\n`);
 
-configCmd.addHelpText("after", `\n${t("VAL_ALLOWED_KEYS")}`);
+configCmd.addHelpText("after", `\n${helpSection(t("VAL_ALLOWED_KEYS").includes("允许") ? "配置键" : "Keys", t("VAL_ALLOWED_KEYS"))}`);
 
 configCmd
     .command("set")
     .description(t("CONFIG_SET_DESC"))
-    .argument("<key>", "Key (api-key, lang, api-base, account-base, fred-api-key)")
+    .argument("<key>", "Key (api-key, lang, api-base, account-base)")
     .argument("<value>", "Value")
     .action(async (key, value) => {
         if (!API_KEY_MAP[key]) {
@@ -45,13 +45,6 @@ configCmd
             logger.success(t("ONBOARD_SUCCESS"));
         }
 
-        // FRED API Key: just save, no validation needed
-        if (configKey === "fredApiKey") {
-            config.set(configKey, value);
-            logger.success(`FRED API Key saved. Test with: methodalgo fred latest FEDFUNDS`);
-            return;
-        }
-
         config.set(configKey, value);
         logger.success(t("SET_SUCCESS", { key, value }));
     });
@@ -59,7 +52,7 @@ configCmd
 configCmd
     .command("get")
     .description(t("CONFIG_GET_DESC"))
-    .argument("<key>", "Key (api-key, lang, api-base, account-base, fred-api-key)")
+    .argument("<key>", "Key (api-key, lang, api-base, account-base)")
     .action((key) => {
         if (!API_KEY_MAP[key]) {
             logger.error(t("ERR_INVALID_CONFIG_KEY", { key }));
@@ -71,9 +64,6 @@ configCmd
         const value = config.get(configKey);
         if (configKey === "apiKey" && process.env.METHODALGO_API_KEY) {
             logger.info(t("INFO_USE_ENV_KEY"));
-        }
-        if (configKey === "fredApiKey" && process.env.FRED_API_KEY) {
-            logger.info("Using FRED API Key from environment variable (FRED_API_KEY).");
         }
         if (value) {
             console.log(value);
@@ -89,7 +79,7 @@ configCmd
         const all = config.store;
         const safeData = { ...all };
         if (safeData.apiKey) safeData.apiKey = "********";
-        if (safeData.fredApiKey) safeData.fredApiKey = "********";
+        delete safeData.fredApiKey;
         logger.json(safeData);
     });
 

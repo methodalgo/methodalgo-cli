@@ -53,6 +53,22 @@ describe('config Command Structure', () => {
             
             expect(configCmd.options).toBeDefined();
         });
+
+        it('should omit legacy fredApiKey values when listing config', async () => {
+            config.store = {
+                apiKey: 'method-key',
+                fredApiKey: 'legacy-fred-key',
+                lang: 'en'
+            };
+            const { default: configCmd } = await import('../../src/commands/config.js');
+
+            await configCmd.parseAsync(['node', 'config', 'list'], { from: 'node' });
+
+            expect(logger.json).toHaveBeenCalledWith({
+                apiKey: '********',
+                lang: 'en'
+            });
+        });
     });
 
     describe('API Key Map constants', () => {
@@ -61,15 +77,14 @@ describe('config Command Structure', () => {
                 "api-key": "apiKey",
                 "lang": "lang",
                 "api-base": "apiBase",
-                "account-base": "accountBase",
-                "fred-api-key": "fredApiKey"
+                "account-base": "accountBase"
             };
             
             expect(API_KEY_MAP["api-key"]).toBe("apiKey");
             expect(API_KEY_MAP["lang"]).toBe("lang");
             expect(API_KEY_MAP["api-base"]).toBe("apiBase");
             expect(API_KEY_MAP["account-base"]).toBe("accountBase");
-            expect(API_KEY_MAP["fred-api-key"]).toBe("fredApiKey");
+            expect(API_KEY_MAP["fred-api-key"]).toBeUndefined();
         });
     });
 });

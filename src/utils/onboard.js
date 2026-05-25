@@ -65,16 +65,6 @@ export async function startOnboarding(banner = "", options = {}) {
         }
     }
 
-    // 5. 可选：FRED API Key
-    console.log(chalk.cyan("\n" + "─".repeat(30)));
-    console.log(chalk.blue(`💡 (Optional) ${t("ONBOARD_FRED_DESC") || "Add FRED support for macro economic data."}`));
-    const fredKey = await question(chalk.bold(`🔑 FRED API Key (Press Enter to skip): `));
-    if (fredKey) {
-        config.set("fredApiKey", fredKey);
-        console.log(chalk.green(`✓ FRED API Key saved.`));
-    }
-
-
     rl.close();
     console.log(chalk.cyan("\n" + "=".repeat(50) + "\n"));
 }

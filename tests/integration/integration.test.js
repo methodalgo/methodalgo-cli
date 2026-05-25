@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const RUN_INTEGRATION_TESTS = process.env.RUN_INTEGRATION_TESTS === 'true';
 const TEST_API_KEY = process.env.TEST_METHODALGO_API_KEY;
-const TEST_FRED_API_KEY = process.env.TEST_FRED_API_KEY;
 
 vi.mock('../../src/utils/config-manager.js', () => ({
     default: {
@@ -10,7 +9,6 @@ vi.mock('../../src/utils/config-manager.js', () => ({
             if (key === 'apiKey') return TEST_API_KEY || '';
             if (key === 'apiBase') return 'https://mm.methodalgo.com';
             if (key === 'lang') return 'zh';
-            if (key === 'fredApiKey') return TEST_FRED_API_KEY || '';
             return undefined;
         }),
         set: vi.fn(),
@@ -90,41 +88,14 @@ conditionalDescribe('Integration Tests', () => {
         });
     });
 
-    describe('FRED API Integration (requires TEST_FRED_API_KEY)', () => {
-        it('should have FRED API key configured for testing', () => {
-            if (TEST_FRED_API_KEY) {
-                expect(TEST_FRED_API_KEY).toBeDefined();
-                expect(TEST_FRED_API_KEY).not.toBe('');
-            } else {
-                console.log('Note: TEST_FRED_API_KEY not set, FRED tests will be skipped');
-            }
-        });
-
-        it('should fetch FEDFUNDS data from FRED API', async () => {
-            if (!TEST_FRED_API_KEY) {
-                console.log('Skipping: TEST_FRED_API_KEY not set');
-                return;
-            }
-
-            const { getSeriesObservations } = await import('../../src/utils/fred-api.js');
-            
-            const result = await getSeriesObservations({
-                series_id: 'FEDFUNDS',
-                limit: 2
-            });
-
-            expect(result).toBeDefined();
-            expect(result.observations).toBeDefined();
-            expect(Array.isArray(result.observations)).toBe(true);
-        });
-    });
-
     describe('Command Integration Tests', () => {
         it('should verify command exports are working correctly', async () => {
             const { default: newsCmd } = await import('../../src/commands/news.js');
             const { default: signalsCmd } = await import('../../src/commands/signals.js');
             const { default: configCmd } = await import('../../src/commands/config.js');
             const { default: binanceCmd } = await import('../../src/commands/binance.js');
+            const { default: macroCmd } = await import('../../src/commands/macro.js');
+            const { default: totalsCmd } = await import('../../src/commands/totals.js');
 
             expect(newsCmd).toBeDefined();
             expect(newsCmd.name()).toBe('news');
@@ -137,6 +108,12 @@ conditionalDescribe('Integration Tests', () => {
 
             expect(binanceCmd).toBeDefined();
             expect(binanceCmd.name()).toBe('binance');
+
+            expect(macroCmd).toBeDefined();
+            expect(macroCmd.name()).toBe('macro');
+
+            expect(totalsCmd).toBeDefined();
+            expect(totalsCmd.name()).toBe('totals');
         });
 
         it('should have all subcommands for config', async () => {
@@ -148,10 +125,10 @@ conditionalDescribe('Integration Tests', () => {
             expect(subcommandNames).toContain('list');
         });
 
-        it('should have all subcommands for fred', async () => {
-            const { default: fredCmd } = await import('../../src/commands/fred.js');
+        it('should have macro replacement subcommands', async () => {
+            const { default: macroCmd } = await import('../../src/commands/macro.js');
             
-            const subcommandNames = fredCmd.commands.map(c => c.name());
+            const subcommandNames = macroCmd.commands.map(c => c.name());
             
             expect(subcommandNames.length).toBeGreaterThan(10);
             expect(subcommandNames).toContain('search');
@@ -163,11 +140,18 @@ conditionalDescribe('Integration Tests', () => {
 });
 
 describe('Integration Test Environment', () => {
+    it('should register totals and not import the removed fred command', async () => {
+        const { readFileSync } = await import('fs');
+        const source = readFileSync(new URL('../../src/index.js', import.meta.url), 'utf8');
+
+        expect(source).toContain('./commands/totals.js');
+        expect(source).not.toContain('./commands/fred.js');
+    });
+
     it('should show test environment info', () => {
         console.log('\n=== Integration Test Environment ===');
         console.log('RUN_INTEGRATION_TESTS:', RUN_INTEGRATION_TESTS);
         console.log('TEST_METHODALGO_API_KEY set:', !!TEST_API_KEY);
-        console.log('TEST_FRED_API_KEY set:', !!TEST_FRED_API_KEY);
         console.log('===================================\n');
         
         expect(true).toBe(true);

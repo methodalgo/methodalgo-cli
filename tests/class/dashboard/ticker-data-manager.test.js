@@ -4,11 +4,6 @@ vi.mock("../../../src/utils/api.js", () => ({
     signedRequest: vi.fn()
 }));
 
-vi.mock("../../../src/utils/fred-api.js", () => ({
-    getFredApiKey: vi.fn(() => ""),
-    getSeriesObservations: vi.fn()
-}));
-
 vi.mock("../../../src/utils/price-utils.js", () => ({
     fetchBinancePrice: vi.fn()
 }));
@@ -28,12 +23,25 @@ describe("TickerDataManager", () => {
         expect(formatted.text).toBe("Market open");
     });
 
-    it("returns a placeholder when FRED key is missing", async () => {
+    it("fetches FRED ticker values through the macro endpoint", async () => {
+        const { signedRequest } = await import("../../../src/utils/api.js");
+        signedRequest.mockResolvedValue({
+            data: {
+                status: true,
+                data: {
+                    data: [
+                        { date: "2026-05-01", value: 4.9 },
+                        { date: "2026-05-02", value: 5.0, change: 0.1 }
+                    ]
+                }
+            }
+        });
         const { TickerDataManager } = await import("../../../src/class/Dashboard/ticker-data-manager.js");
         const manager = new TickerDataManager("en");
         const data = await manager.fetchSource({ type: "fred", series: "FEDFUNDS" });
 
-        expect(data).toEqual({ value: "--", series: "FEDFUNDS", direction: null });
+        expect(signedRequest).toHaveBeenCalledWith("/cli/macro", { type: "fred-changes", seriesId: "FEDFUNDS", periods: 2 });
+        expect(data).toEqual({ value: "5.00", series: "FEDFUNDS", direction: "up", change: 0.1, date: "2026-05-02" });
     });
 
     it("formats arrays from news sources", async () => {

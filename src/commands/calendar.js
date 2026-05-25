@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { signedRequest } from "../utils/api.js";
 import logger from "../utils/logger.js";
 import { t, getLang } from "../utils/i18n.js";
+import { helpExample, helpSection } from "../utils/help-format.js";
 
 const calendarCmd = new Command("calendar")
     .description(t("CALENDAR_DESC"))
@@ -10,7 +11,7 @@ const calendarCmd = new Command("calendar")
     .option("-f, --from <date>", `${t("OPT_CALENDAR_FROM_DESC")} (Format: YYYY-MM-DD)`)
     .option("-t, --to <date>", `${t("OPT_CALENDAR_TO_DESC")} (Format: YYYY-MM-DD)`)
     .option("--json", t("OPT_JSON_DESC"))
-    .addHelpText("after", `\n${t("LABEL_EXAMPLE")}\n  $ ${t("CALENDAR_EXAMPLE")}`)
+    .addHelpText("after", `\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("CALENDAR_EXAMPLE")))}`)
     .action(async (options) => {
         // 如果没有提供 countries，报错并自动显示帮助信息
         if (!options.countries) {

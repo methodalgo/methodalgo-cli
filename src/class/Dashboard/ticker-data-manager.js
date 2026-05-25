@@ -1,6 +1,5 @@
 import { signedRequest } from "../../utils/api.js";
 import { getLang } from "../../utils/i18n.js";
-import * as fred from "../../utils/fred-api.js";
 import { fetchBinancePrice } from "../../utils/price-utils.js";
 
 export const TICKER_SOURCE_TYPES = {
@@ -103,30 +102,19 @@ export class TickerDataManager {
     }
 
     async _fetchFred(source) {
-        const apiKey = fred.getFredApiKey();
-        if (!apiKey) {
-            return { value: "--", series: source.series, direction: null };
-        }
         try {
-            const obsRes = await fred.getSeriesObservations({
-                series_id: source.series,
-                sort_order: "desc",
-                limit: 10
-            });
-            const obs = obsRes.observations?.filter(o => o.value !== ".") || [];
-            if (obs.length > 0) {
-                const latest = obs[0];
-                const prev = obs.length > 1 ? obs[1] : null;
-                const value = Number(latest.value);
-                const change = prev ? value - Number(prev.value) : 0;
-                return {
-                    value: value.toFixed(2),
-                    series: source.series,
-                    direction: change > 0.001 ? "up" : change < -0.001 ? "down" : "flat",
-                    change,
-                    date: latest.date
-                };
-            }
+            const response = await signedRequest("/cli/macro", { type: "fred-changes", seriesId: source.series, periods: 2 });
+            const rows = response?.data?.data?.data || [];
+            const latest = rows[rows.length - 1];
+            if (!response?.data?.status || !latest) return { value: "--", series: source.series, direction: null };
+            const change = Number(latest.change || 0);
+            return {
+                value: Number(latest.value).toFixed(2),
+                series: source.series,
+                direction: change > 0.001 ? "up" : change < -0.001 ? "down" : "flat",
+                change,
+                date: latest.date
+            };
         } catch (e) {
             console.debug(`[TickerBar] Error fetching FRED series ${source.series}:`, e.message);
         }

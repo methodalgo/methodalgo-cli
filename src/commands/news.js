@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { signedRequest } from "../utils/api.js";
 import logger from "../utils/logger.js";
 import { t } from "../utils/i18n.js";
+import { helpExample, helpSection } from "../utils/help-format.js";
 
 const newsCmd = new Command("news")
     .description(t("NEWS_DESC"))
@@ -13,7 +14,7 @@ const newsCmd = new Command("news")
     .option("-S, --start-date <date>", t("OPT_START_DATE_DESC"))
     .option("-E, --end-date <date>", t("OPT_END_DATE_DESC"))
     .option("--json", t("OPT_JSON_DESC"))
-    .addHelpText("after", `\n${t("NEWS_LIMIT_NOTE")}\n\n${t("LABEL_EXAMPLE")}\n  $ ${t("NEWS_EXAMPLE")}\n\n${t("NEWS_TYPES")}`)
+    .addHelpText("after", `\n${chalk.gray(t("NEWS_LIMIT_NOTE"))}\n\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("NEWS_EXAMPLE")))}\n\n${t("NEWS_TYPES")}`)
     .action(async (options) => {
         if (!options.type) return newsCmd.help();
         try {
