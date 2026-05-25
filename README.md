@@ -47,6 +47,7 @@ npm install -g methodalgo-cli
 methodalgo
 ```
 *Note: this method can auto update when new version released.*
+Releases are built and published from GitHub Actions using npm Trusted Publishing.
 
 #### 🔑 Login / API Key
 To use the CLI, run browser login. The account service will reuse or create a dedicated `methodalgo-cli:` API key and save it locally after validation.
