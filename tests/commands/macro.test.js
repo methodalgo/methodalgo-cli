@@ -87,7 +87,7 @@ describe("macro Command Structure", () => {
 
         await expect(macroCmd.parseAsync(["node", "macro", "environment", "--json"], { from: "node" })).resolves.toBeDefined();
 
-        expect(logger.error).toHaveBeenCalledWith(expect.stringContaining("宏观请求失败"));
+        expect(logger.error).toHaveBeenCalledWith(expect.stringMatching(/Macro request failed|宏观请求失败/));
     });
 
     it("falls back to market-today totals for environment when market-environment is unavailable", async () => {
