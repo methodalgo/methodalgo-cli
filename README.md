@@ -32,6 +32,7 @@
 - 🤖 **AI Friendly**: Clean JSON output, perfect for AI Agentic skills integration.
 - ⚡ **Lightning Fast**: Built on Node SEA, millisecond startup time.
 - 🖼️ **Terminal Rendering**: Deeply compatible with iTerm2 for previewing snapshots in-terminal.
+- 📊 **Macro & Totals**: Server-backed macro indicators and crypto market totals for structured research workflows.
 - 🌍 **Multi-language**: Native support for Chinese and English.
 
 
