@@ -98,6 +98,26 @@ describe("macro Command Structure", () => {
         expect(logger.json).toHaveBeenCalledWith({ results: [] });
     });
 
+    it("uses descending sort by default for orderings other than search_rank", async () => {
+        const { signedRequest } = await import("../../src/utils/api.js");
+        signedRequest.mockResolvedValue({ data: { status: true, data: { results: [] } } });
+        const { default: macroCmd } = await import("../../src/commands/macro.js");
+
+        await macroCmd.parseAsync(["node", "macro", "search", "CPI", "--order", "popularity", "--json"], { from: "node" });
+
+        expect(signedRequest).toHaveBeenCalledWith("/cli/macro", expect.objectContaining({ type: "fred-search", order: "popularity", sort: "desc" }));
+    });
+
+    it("passes an explicit sort direction through unchanged", async () => {
+        const { signedRequest } = await import("../../src/utils/api.js");
+        signedRequest.mockResolvedValue({ data: { status: true, data: { results: [] } } });
+        const { default: macroCmd } = await import("../../src/commands/macro.js");
+
+        await macroCmd.parseAsync(["node", "macro", "search", "CPI", "--sort", "desc", "--json"], { from: "node" });
+
+        expect(signedRequest).toHaveBeenCalledWith("/cli/macro", expect.objectContaining({ type: "fred-search", order: "search_rank", sort: "desc" }));
+    });
+
     it("reports macro request failures without throwing", async () => {
         const { signedRequest } = await import("../../src/utils/api.js");
         const logger = (await import("../../src/utils/logger.js")).default;
