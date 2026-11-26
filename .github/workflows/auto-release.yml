@@ -6,20 +6,120 @@ on:
       - main
     paths-ignore:
       - 'package.json'
+      - 'package-lock.json'
       - 'CHANGELOG.md'
       - '.github/workflows/**'
 
+# 相近的两次推送依次运行；先到的那次若在发版前被新推送取代会被明确放弃，由后到的那次发出包含两次改动的版本
+concurrency:
+  group: auto-release
+  cancel-in-progress: false
+
 jobs:
-  release:
+  build:
     runs-on: macos-latest
     permissions:
-      contents: write
-      id-token: write
-
+      contents: read
+    outputs:
+      version: ${{ steps.version.outputs.value }}
+      sha: ${{ github.sha }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      # 先升版再测试和构建：二进制内嵌的版本号必须与随后发布的 tag 一致
+      - name: Bump version
+        id: version
+        run: |
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          echo "value=${NEW_VERSION#v}" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build all platforms
+        run: npm run build
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v7
+        with:
+          name: binaries
+          path: binaries/
+          retention-days: 1
+          compression-level: 0
+          if-no-files-found: error
+
+  # 发布产物曾在从未被运行过的情况下连续发版：每个二进制都必须先在对应架构上真正启动
+  smoke:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            binary: methodalgo-macos-arm64
+          - os: macos-15-intel
+            binary: methodalgo-macos-x64
+          - os: ubuntu-latest
+            binary: methodalgo-linux-x64
+          - os: windows-latest
+            binary: methodalgo-win-x64.exe
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v8
+        with:
+          name: binaries
+          path: binaries
+
+      # 产物上传不保留文件权限，下载后需要恢复可执行位
+      - name: Make the binary executable
+        if: runner.os != 'Windows'
+        run: chmod +x "binaries/${{ matrix.binary }}"
+
+      # 版本号必须与源码一致：二进制若读不到 package.json 会回退成错误版本
+      - name: Start the binary
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ needs.build.outputs.version }}
+          BINARY: binaries/${{ matrix.binary }}
+        run: |
+          ACTUAL_VERSION="$("$BINARY" --version)"
+          if [ "$ACTUAL_VERSION" != "$EXPECTED_VERSION" ]; then
+            echo "expected version $EXPECTED_VERSION but the binary reported $ACTUAL_VERSION"
+            exit 1
+          fi
+          "$BINARY" --help > /dev/null
+
+  release:
+    needs: [build, smoke]
+    runs-on: macos-latest
+    permissions:
+      contents: write
+      id-token: write
+    env:
+      VERSION: ${{ needs.build.outputs.version }}
+      BUILD_SHA: ${{ needs.build.outputs.sha }}
+
+    steps:
+      # 固定到构建所用的提交：tag 与 npm 包必须对应经过测试和冒烟的那份源码
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.sha }}
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -35,35 +135,42 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Bump version
-        id: bump_version
-        run: |
-          # 自动增加 patch 版本
-          NEW_VERSION=$(npm version patch --no-git-tag-version)
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$NEW_VERSION" >> $GITHUB_OUTPUT
+      # 把构建时确定的版本写入本次签出的源码，随后提交并打 tag
+      - name: Apply version
+        run: npm version "$VERSION" --no-git-tag-version
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run tests
-        run: npm test
-
-      - name: Build all platforms
-        run: npm run build
+      - name: Download binaries
+        uses: actions/download-artifact@v8
+        with:
+          name: binaries
+          path: binaries
 
       - name: Commit version and push tag
         run: |
+          # 用“tag 所指提交的父提交是否为本次构建提交”判断本次的版本提交是否已推送；只比对版本号会把被取代的旧运行误判为已推送
+          git fetch --quiet --force origin "+refs/heads/*:refs/remotes/origin/*" "+refs/tags/*:refs/tags/*"
+          TAG_COMMIT=$(git rev-parse -q --verify "refs/tags/v$VERSION^{commit}" || true)
+          if [ -n "$TAG_COMMIT" ] && [ "$(git rev-parse "$TAG_COMMIT^")" = "$BUILD_SHA" ]; then
+            # 上次停在创建 Release 或发布 npm：本次的版本提交已推送，继续后续步骤
+            echo "version $VERSION from build $BUILD_SHA is already on main"
+            exit 0
+          fi
+          if [ -n "$TAG_COMMIT" ] || [ "$(git rev-parse origin/main)" != "$BUILD_SHA" ]; then
+            # main 已前移，或版本号已被别的运行占用：本次构建已被更新的推送取代，不提交、不打 tag
+            echo "::error::superseded by a newer push, nothing was pushed"
+            exit 1
+          fi
           git add package.json package-lock.json
-          git commit -m "chore: auto-release ${{ steps.bump_version.outputs.tag }} [skip ci]"
-          git tag "${{ steps.bump_version.outputs.tag }}"
-          git push origin main --tags
+          git commit -m "chore: auto-release v$VERSION [skip ci]"
+          git tag "v$VERSION"
+          # 分支与 tag 同进同退，避免分支被拒时留下孤儿 tag
+          git push --atomic origin HEAD:refs/heads/main "refs/tags/v$VERSION"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.bump_version.outputs.tag }}
-          name: Release ${{ steps.bump_version.outputs.tag }}
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
           files: |
             binaries/methodalgo-macos-arm64
             binaries/methodalgo-macos-x64
@@ -73,7 +180,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # 该版本已发布过则跳过，使失败后的重跑能够完成
       - name: Publish to NPM
-        run: npm publish --access public
+        run: npm view methodalgo-cli@"$VERSION" version > /dev/null 2>&1 || npm publish --access public
         env:
           NODE_AUTH_TOKEN: ''
