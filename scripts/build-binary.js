@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const root = join(__dirname, '..');
 
-const NODE_VERSION = 'v22.14.0';
+const NODE_VERSION = 'v24.22.3';
 const APP_NAME = 'methodalgo';
 
 // 定义支持的目标平台及其下载路径

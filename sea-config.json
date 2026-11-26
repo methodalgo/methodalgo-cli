@@ -3,6 +3,7 @@
   "output": "dist/sea-prep.blob",
   "disableExperimentalSEAWarning": true,
   "assets": {
-    "index.mjs": "dist/index.mjs"
+    "index.mjs": "dist/index.mjs",
+    "package.json": "package.json"
   }
 }

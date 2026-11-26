@@ -15,11 +15,17 @@ async function main() {
   // Generate a predictable temp dir name for caching if possible, or just a random one.
   const appPrefix = 'methodalgo-cli-';
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), appPrefix));
-  const mjsPath = path.join(tmpDir, 'index.mjs');
+  // 按仓库相对布局释放，让入口里两处按相对路径读取 package.json 的代码都能命中：
+  // src/index.js 从所在目录上溯一级，src/utils/constants.js 从文件路径上溯三级
+  const appDir = path.join(tmpDir, 'app');
+  const mjsPath = path.join(appDir, 'src', 'index.mjs');
 
   try {
     // Write ESM bundle to a temporary file
+    fs.mkdirSync(path.dirname(mjsPath), { recursive: true });
     fs.writeFileSync(mjsPath, new Uint8Array(content), { mode: 0o755 });
+    const pkg = new Uint8Array(getAsset('package.json'));
+    [tmpDir, appDir].forEach((dir) => fs.writeFileSync(path.join(dir, 'package.json'), pkg));
 
     // Clean up function
     const cleanup = () => {
