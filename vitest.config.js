@@ -16,13 +16,12 @@ export default defineConfig({
                 '.trae/'
             ],
             all: true,
+            // vitest 4 起阈值为扁平配置（嵌套在 global 下会被当作文件匹配模式而失效）；数值取当前覆盖率略下方，仅用于防止倒退
             thresholds: {
-                global: {
-                    statements: 50,
-                    branches: 40,
-                    functions: 40,
-                    lines: 50
-                }
+                statements: 33,
+                branches: 27,
+                functions: 34,
+                lines: 34
             }
         },
         environment: 'node'
