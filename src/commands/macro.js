@@ -87,6 +87,11 @@ function printKeyValues(title, rows) {
     }
 }
 
+function resolveFredSearchSort(order, sort) {
+    if (sort !== undefined && sort !== null && sort !== "") return sort;
+    return String(order || "search_rank").toLowerCase() === "search_rank" ? "asc" : "desc";
+}
+
 const macroCmd = new Command("macro")
     .description(t("MACRO_DESC"))
     .addHelpText("after", `\n${formatMacroHelp()}`);
@@ -193,11 +198,17 @@ macroCmd
     .description(t("MACRO_SEARCH_DESC"))
     .option("-l, --limit <n>", t("OPT_MAX_RESULTS_DESC"), "10")
     .option("--order <field>", t("OPT_FRED_ORDER"), "search_rank")
-    .option("--sort <dir>", t("OPT_SORT_DESC"), "desc")
+    .option("--sort <dir>", t("OPT_SORT_DESC"))
     .option("--tag <names>", t("OPT_TAG_DESC"))
     .option("--json", t("OPT_JSON_DESC"))
     .action(async (query, opts) => {
-        const data = await requestMacro("fred-search", { query, limit: opts.limit, order: opts.order, sort: opts.sort, tag: opts.tag }, opts);
+        const data = await requestMacro("fred-search", {
+            query,
+            limit: opts.limit,
+            order: opts.order,
+            sort: resolveFredSearchSort(opts.order, opts.sort),
+            tag: opts.tag
+        }, opts);
         if (!data || opts.json) return;
         const results = data.results || [];
         if (!results.length) return logger.info(t("MSG_NO_RESULTS_FOR", { query }));

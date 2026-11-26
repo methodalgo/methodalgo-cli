@@ -79,6 +79,25 @@ describe("macro Command Structure", () => {
         expect(logger.json).toHaveBeenCalledWith({ command: "liquidity" });
     });
 
+    it("uses ascending sort by default for fred search_rank queries", async () => {
+        const { signedRequest } = await import("../../src/utils/api.js");
+        const logger = (await import("../../src/utils/logger.js")).default;
+        signedRequest.mockResolvedValue({ data: { status: true, data: { results: [] } } });
+        const { default: macroCmd } = await import("../../src/commands/macro.js");
+
+        await macroCmd.parseAsync(["node", "macro", "search", "CPI", "--json"], { from: "node" });
+
+        expect(signedRequest).toHaveBeenCalledWith("/cli/macro", {
+            type: "fred-search",
+            query: "CPI",
+            limit: "10",
+            order: "search_rank",
+            sort: "asc",
+            tag: undefined
+        });
+        expect(logger.json).toHaveBeenCalledWith({ results: [] });
+    });
+
     it("reports macro request failures without throwing", async () => {
         const { signedRequest } = await import("../../src/utils/api.js");
         const logger = (await import("../../src/utils/logger.js")).default;
