@@ -117,6 +117,7 @@ async function main() {
   const binariesDir = join(root, 'binaries');
   if (!existsSync(binariesDir)) mkdirSync(binariesDir, { recursive: true });
 
+  const failed = [];
   for (const target of TARGETS) {
     const platformId = `${target.os}-${target.arch}`;
     console.log(`\n📦 Processing: ${platformId}...`);
@@ -151,8 +152,12 @@ async function main() {
       console.log(`✅ ${platformId} Build OK!`);
     } catch (err) {
       console.error(`❌ ${platformId} Build Failed:`, err.message);
+      failed.push(platformId);
     }
   }
+
+  // 任一平台失败都必须让脚本以非零状态结束，否则 CI 会带着残缺的产物继续发版
+  if (failed.length) throw new Error(`Build failed for: ${failed.join(', ')}`);
 
   console.log('\n✨ --- All Done! Check binaries/ folder. ---');
 }
