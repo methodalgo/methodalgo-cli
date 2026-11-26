@@ -16,7 +16,11 @@ const newsCmd = new Command("news")
     .option("--json", t("OPT_JSON_DESC"))
     .addHelpText("after", `\n${chalk.gray(t("NEWS_LIMIT_NOTE"))}\n\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("NEWS_EXAMPLE")))}\n\n${t("NEWS_TYPES")}`)
     .action(async (options) => {
-        if (!options.type) return newsCmd.help();
+        if (!options.type) {
+            logger.error(t("ERR_MISSING_TYPE"), helpExample(t("NEWS_EXAMPLE")).trim());
+            process.exitCode = 1;
+            return newsCmd.help();
+        }
         try {
             const res = await signedRequest("/cli/news", {
                 type: options.type,

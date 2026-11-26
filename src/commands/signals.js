@@ -57,7 +57,11 @@ const signalsCmd = new Command("signals")
     .option("--json", "Output raw JSON data")
     .addHelpText("after", `\n${chalk.gray(t("SIGNALS_LIMIT_NOTE"))}`)
     .action(async (channel, options) => {
-        if (!channel) return signalsCmd.help();
+        if (!channel) {
+            logger.error(t("ERR_MISSING_CHANNEL"), helpExample(t("SIGNALS_EXAMPLE")).trim());
+            process.exitCode = 1;
+            return signalsCmd.help();
+        }
         try {
             const res = await signedRequest("/cli/signals", { 
                 channelName: channel, 

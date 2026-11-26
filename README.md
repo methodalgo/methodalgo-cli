@@ -119,7 +119,7 @@ Get a real-time TradingView chart snapshot for a specific symbol.
 #### 📡 Trading Signals (`signals`)
 Fetch Alpha signals or market indices. Optimized for real-time tracking.
 
-*   **Usage**: `methodalgo signals [channel] [options]`
+*   **Usage**: `methodalgo signals [channel] [options]` (`channel` is required)
 *   **Key Channels**:
     *   `breakout-htf/mtf`: 100-candle rolling window high/low breakout alerts.
     *   `exhaustion-buyer/seller`: Reversal signals based on Grim Reaper Heatmap.
@@ -140,7 +140,7 @@ Get multi-language crypto market news filtered by AI.
 *   **Usage**: `methodalgo news [options]`
 *   **News Types**: `breaking`, `article`, `onchain`, `report`
 *   **Options**:
-    *   `-t, --type <type>`: News category (Default: "breaking")
+    *   `-t, --type <type>`: News category (Required)
     *   `-l, --limit <number>`: Result count (Default: "10")
     *   `-g, --language <lang>`: Output language (zh/en) (Default: "zh")
     *   `-s, --search <keyword>`: Search keyword in titles.
@@ -359,7 +359,7 @@ methodalgo
 #### 📡 交易信号 (`signals`)
 获取 Alpha 信号或市场指标。针对实时追踪进行了深度优化。
 
-*   **用法**: `methodalgo signals [channel] [options]`
+*   **用法**: `methodalgo signals [channel] [options]` (`channel` 为必填)
 *   **核心频道**:
     *   `breakout-htf/mtf`: 100 根 K 线滚动窗口的高/低点突破提醒。
     *   `exhaustion-buyer/seller`: 基于死神清算热力图的反转信号。
@@ -380,7 +380,7 @@ methodalgo
 *   **用法**: `methodalgo news [options]`
 *   **新闻类型**: `breaking` (快讯), `article` (深度), `onchain` (链上), `report` (报告)
 *   **选项**:
-    *   `-t, --type <type>`: 新闻分类 (默认: "breaking")
+    *   `-t, --type <type>`: 新闻分类 (必填)
     *   `-l, --limit <number>`: 结果数量 (默认: "10")
     *   `-g, --language <lang>`: 输出语言 (zh/en) (默认: "zh")
     *   `-s, --search <keyword>`: 标题关键词搜索。
