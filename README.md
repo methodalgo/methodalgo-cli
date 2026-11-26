@@ -516,6 +516,14 @@ You can use environment variables to configure the CLI. Environment variables ta
 | `METHODALGO_ACCOUNT_BASE` | Custom account URL for OAuth login (Default: `https://account.methodalgo.com`). |
 | `METHODALGO_API_BASE` | Custom API base URL (Default: `https://api.methodalgo.com`). |
 
+#### ⚙️ Exit Codes
+
+`methodalgo` exits with code `0` when a command succeeds and code `1` when it fails, so scripts and AI agents can rely on the exit status:
+
+*   **Failures exit with code `1`**: missing required input (for example `news` without `--type`), an invalid API key, a failed request, or an unknown config key. The reason and a suggested fix are printed to stderr.
+*   **`--json` only carries data on success.** On failure stdout does not hold JSON; read stderr instead.
+*   **`methodalgo login` needs an interactive terminal.** In CI, containers, or non-interactive agent shells, provide the key with `METHODALGO_API_KEY`; without either, data commands exit with code `1`. (`--version` and `--help` never need a key.)
+
 
 #### ⚙️ 环境变量
 
@@ -526,3 +534,11 @@ You can use environment variables to configure the CLI. Environment variables ta
 | `METHODALGO_API_KEY` | 您的 Methodalgo API Key。 |
 | `METHODALGO_ACCOUNT_BASE` | 自定义 OAuth 登录账户地址（默认：`https://account.methodalgo.com`）。 |
 | `METHODALGO_API_BASE` | 自定义 API 基础 URL（默认：`https://api.methodalgo.com`）。 |
+
+#### ⚙️ 退出码
+
+命令成功时 `methodalgo` 以退出码 `0` 结束，失败时以 `1` 结束，脚本与 AI 代理可据此判断结果：
+
+*   **失败均以退出码 `1` 结束**：缺少必填参数（如 `news` 未带 `--type`）、API Key 无效、请求失败、配置键无效等；原因与建议方案输出到 stderr。
+*   **`--json` 只在成功时携带数据**。失败时 stdout 中没有 JSON，请改读 stderr。
+*   **`methodalgo login` 需要交互式终端**。在 CI、容器或非交互的代理环境中，请用 `METHODALGO_API_KEY` 提供密钥；两者都没有时数据命令以退出码 `1` 结束。（`--version` 与 `--help` 不需要密钥。）
