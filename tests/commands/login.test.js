@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import config from '../../src/utils/config-manager.js';
 import logger from '../../src/utils/logger.js';
 
@@ -7,6 +7,10 @@ vi.mock('../../src/utils/config-manager.js', () => ({
         get: vi.fn(),
         set: vi.fn(),
     }
+}));
+
+vi.mock('../../src/utils/onboard.js', () => ({
+    startOnboarding: vi.fn()
 }));
 
 vi.mock('../../src/utils/logger.js', () => ({
@@ -50,6 +54,33 @@ describe('login Command Structure', () => {
             const { default: loginCmd } = await import('../../src/commands/login.js');
             
             expect(loginCmd.commands.length).toBe(0);
+        });
+    });
+
+    describe('Non-interactive standard input', () => {
+        const stdinIsTTY = Object.getOwnPropertyDescriptor(process.stdin, 'isTTY');
+
+        beforeEach(() => {
+            Object.defineProperty(process.stdin, 'isTTY', { value: undefined, configurable: true });
+        });
+
+        afterEach(() => {
+            Object.defineProperty(process.stdin, 'isTTY', { ...stdinIsTTY, configurable: true });
+        });
+
+        // 登录必须在交互式终端里进行：没有终端输入时要明确失败，不能停在“是否重新登录”的询问上，更不能清空已存的密钥
+        it('should fail without prompting or clearing the stored key', async () => {
+            const readline = (await import('readline')).default;
+            const { startOnboarding } = await import('../../src/utils/onboard.js');
+            config.get.mockImplementation((key) => (key === 'apiKey' ? 'test-auth-token' : 'en'));
+            const { default: loginCmd } = await import('../../src/commands/login.js');
+
+            await loginCmd.parseAsync(['node', 'login'], { from: 'node' });
+
+            expect(logger.error).toHaveBeenCalledWith(expect.any(String), expect.stringContaining('methodalgo login'));
+            expect(readline.createInterface).not.toHaveBeenCalled();
+            expect(config.set).not.toHaveBeenCalled();
+            expect(startOnboarding).not.toHaveBeenCalled();
         });
     });
 });

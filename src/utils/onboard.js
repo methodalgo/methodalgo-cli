@@ -4,10 +4,29 @@ import config from "./config-manager.js";
 import { t } from "./i18n.js";
 import { validateApiKey } from "./api.js";
 import { loginWithOAuth } from "./oauth-login.js";
+import logger from "./logger.js";
 
 export async function startOnboarding(banner = "", options = {}) {
+    const abort = () => {
+        logger.error(t("ERR_ONBOARD_NO_INPUT"), t("SUGGESTION_LOGIN"));
+        return false;
+    };
+    // 标准输入不是终端时无法交互（也不保证会结束）：立即明确失败，而不是一直等待输入
+    if (!process.stdin.isTTY) return abort();
+
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    const question = (query) => new Promise((resolve) => rl.question(query, resolve));
+    // 标准输入被关闭（如 Ctrl+D）时 readline 不会回调 question：用 null 表示没有拿到输入，让流程明确失败
+    let inputClosed = false;
+    rl.on("close", () => { inputClosed = true; });
+    const question = (query) => new Promise((resolve) => {
+        if (inputClosed) return resolve(null);
+        const onClose = () => resolve(null);
+        rl.once("close", onClose);
+        rl.question(query, (answer) => {
+            rl.removeListener("close", onClose);
+            resolve(answer);
+        });
+    });
     const useOAuth = options.useOAuth !== false;
 
     console.clear();
@@ -16,6 +35,7 @@ export async function startOnboarding(banner = "", options = {}) {
     // 1. 设置语言
     console.log(chalk.cyan("\n" + "=".repeat(50)));
     const langIdx = await question(chalk.bold("\n请选择语言 / Select Language (1: English, 2: 中文) [1]: "));
+    if (langIdx === null) return abort();
     const lang = langIdx === "2" ? "zh" : "en";
     config.set("lang", lang);
     console.log(chalk.green(`\n✓ Language set to: ${lang === "zh" ? "中文" : "English"}`));
@@ -27,6 +47,7 @@ export async function startOnboarding(banner = "", options = {}) {
     let valid = false;
     if (useOAuth) {
         const authMethod = await question(chalk.bold(`\n${t("ONBOARD_AUTH_METHOD_PROMPT")}`));
+        if (authMethod === null) return abort();
         if (authMethod !== "2") {
             try {
                 console.log(chalk.blue(`\n⏳ ${t("ONBOARD_OAUTH_OPENING")}`));
@@ -51,6 +72,7 @@ export async function startOnboarding(banner = "", options = {}) {
 
     while (!valid) {
         const key = await question(chalk.bold(`🔑 ${t("ONBOARD_PROMPT")}`));
+        if (key === null) return abort();
         if (!key) continue;
 
         console.log(chalk.blue(`\n⏳ ${t("ONBOARD_VALIDATING")}...`));
@@ -67,4 +89,5 @@ export async function startOnboarding(banner = "", options = {}) {
 
     rl.close();
     console.log(chalk.cyan("\n" + "=".repeat(50) + "\n"));
+    return true;
 }

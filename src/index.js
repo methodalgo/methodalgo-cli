@@ -66,14 +66,16 @@ async function main() {
         console.error(chalk.blue("ℹ️  " + t("INFO_USE_ENV_KEY")));
     }
 
-    const isExcluded = ["config", "login", "logout", "update", "binance", "--help", "-h"].some(arg => process.argv.includes(arg));
-    if (!hasEnvKey && !hasConfigKey && !isExcluded) {
-        await startOnboarding(finalBanner);
-    }
-    
+    // 查看类调用（无参数、帮助、版本）不需要密钥，必须先于登录检查处理：发版冒烟会在未配置密钥的环境里运行它们
     if (process.argv.length <= 2) {
         process.stdout.write(finalBanner + "\n");
         program.help();
+    }
+
+    const isExcluded = ["config", "login", "logout", "update", "binance", "help", "--help", "-h", "--version", "-V"].some(arg => process.argv.includes(arg));
+    if (!hasEnvKey && !hasConfigKey && !isExcluded) {
+        const onboarded = await startOnboarding(finalBanner);
+        if (!onboarded) return;
     }
 
     await program.parseAsync(process.argv);

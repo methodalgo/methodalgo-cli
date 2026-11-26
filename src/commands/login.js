@@ -2,6 +2,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import readline from "readline";
 import config from "../utils/config-manager.js";
+import logger from "../utils/logger.js";
 import { startOnboarding } from "../utils/onboard.js";
 import { t } from "../utils/i18n.js";
 import { BANNER } from "../utils/constants.js";
@@ -15,6 +16,12 @@ const loginCmd = new Command("login")
 
         if (hasEnvKey) {
             console.log(chalk.yellow("\n⚠️  " + t("LOGIN_USE_ENV_KEY")));
+            return;
+        }
+
+        // 登录必须在交互式终端里进行：没有终端输入时明确失败，而不是停在“是否重新登录”的询问上
+        if (!process.stdin.isTTY) {
+            logger.error(t("ERR_ONBOARD_NO_INPUT"), t("SUGGESTION_LOGIN"));
             return;
         }
 
