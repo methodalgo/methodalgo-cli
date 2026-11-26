@@ -18,7 +18,6 @@ const newsCmd = new Command("news")
     .action(async (options) => {
         if (!options.type) {
             logger.error(t("ERR_MISSING_TYPE"), helpExample(t("NEWS_EXAMPLE")).trim());
-            process.exitCode = 1;
             return newsCmd.help();
         }
         try {

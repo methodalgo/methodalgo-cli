@@ -17,7 +17,8 @@ vi.mock('../../src/utils/logger.js', () => ({
     default: {
         info: vi.fn(),
         success: vi.fn(),
-        error: vi.fn(),
+        // 真实的 logger.error 会把退出码置为 1，替身需保留这一行为
+        error: vi.fn(() => { process.exitCode = 1; }),
         warn: vi.fn(),
         json: vi.fn(),
         isIterm2: false,
@@ -35,6 +36,10 @@ describe('news Command Structure', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.resetModules();
+    });
+
+    afterEach(() => {
+        process.exitCode = undefined;
     });
 
     describe('Command structure', () => {
@@ -79,7 +84,6 @@ describe('news Command Structure', () => {
     describe('Missing required --type', () => {
         const spies = [];
         afterEach(() => {
-            process.exitCode = undefined;
             spies.splice(0).forEach(spy => spy.mockRestore());
         });
         const stubExitAndHelp = () => {

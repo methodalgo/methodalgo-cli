@@ -59,7 +59,6 @@ const signalsCmd = new Command("signals")
     .action(async (channel, options) => {
         if (!channel) {
             logger.error(t("ERR_MISSING_CHANNEL"), helpExample(t("SIGNALS_EXAMPLE")).trim());
-            process.exitCode = 1;
             return signalsCmd.help();
         }
         try {

@@ -13,9 +13,8 @@ const calendarCmd = new Command("calendar")
     .option("--json", t("OPT_JSON_DESC"))
     .addHelpText("after", `\n${helpSection(t("LABEL_EXAMPLE"), helpExample(t("CALENDAR_EXAMPLE")))}`)
     .action(async (options) => {
-        // 如果没有提供 countries，报错并自动显示帮助信息
         if (!options.countries) {
-            console.error(chalk.red(`\n✖ ${t("ERR_MISSING_COUNTRIES")}`));
+            logger.error(t("ERR_MISSING_COUNTRIES"), helpExample(t("CALENDAR_EXAMPLE")).trim());
             return calendarCmd.help();
         }
 

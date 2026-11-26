@@ -9,6 +9,8 @@ const logger = {
     success: (msg) => console.log(chalk.green("✔ ") + msg),
     warn: (msg) => console.log(chalk.yellow("⚠ ") + msg),
     error: (msg, suggestion) => {
+        // 任何错误输出都代表命令失败：以非零退出码结束，供脚本与 LLM 代理判断成败
+        process.exitCode = 1;
         console.error(chalk.red("✖ ") + chalk.bold(msg));
         if (suggestion) {
             console.error(chalk.cyan(`\n💡 ${t("LABEL_SUGGESTION")}`) + suggestion);

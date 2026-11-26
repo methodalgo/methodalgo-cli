@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { t } from '../../src/utils/i18n.js';
 
 vi.mock('../../src/utils/i18n.js', () => ({
@@ -17,7 +17,20 @@ describe('logger Module', () => {
         delete process.env.ITERM_SESSION_ID;
     });
 
+    afterEach(() => {
+        process.exitCode = undefined;
+    });
+
     describe('Logger methods', () => {
+        // 脚本与 LLM 代理靠退出码判断成败：任何错误输出都必须让进程以失败状态结束
+        it('should mark the process as failed when reporting an error', async () => {
+            const { default: logger } = await import('../../src/utils/logger.js');
+
+            logger.error('error message');
+
+            expect(process.exitCode).toBe(1);
+        });
+
         it('should have info method that logs to console', async () => {
             const { default: logger } = await import('../../src/utils/logger.js');
             
